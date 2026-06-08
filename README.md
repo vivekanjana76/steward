@@ -32,6 +32,30 @@ uv sync                 # create the venv and install deps (incl. dev tools)
 Copy [`.env.example`](.env.example) to `.env` and fill in keys as needed
 (`.env` is git-ignored; never commit secrets).
 
+## Observability
+
+Every node and tool call can be wrapped in a span via
+[`src/steward/observability/`](src/steward/observability/), capturing latency,
+token usage, cost, and a `trace_id` for the audit log (CLAUDE.md §11):
+
+```python
+from steward.observability import get_tracer
+
+tracer = get_tracer()
+with tracer.span("triage", trace_id=trace_id) as span:
+    span.record_usage(input_tokens=120, output_tokens=30)
+    span.set_cost(0.0021)
+```
+
+Tracing is **Langfuse-backed when configured and a no-op otherwise** — it never
+makes network calls or raises when `LANGFUSE_PUBLIC_KEY`/`LANGFUSE_SECRET_KEY`
+are absent, so local dev and CI are unaffected. Enable the live backend with the
+optional extra:
+
+```bash
+uv sync --extra observability   # installs langfuse; set the keys in .env
+```
+
 ## Architecture & decisions
 
 A full architecture section and demo land in M7. Design decisions are recorded
