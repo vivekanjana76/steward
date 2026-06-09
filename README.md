@@ -64,6 +64,18 @@ confidence and short rationale via the central model client (structured output).
 Low-confidence results route to `status:needs-info` rather than guessing, and
 the issue is presented to the model strictly as data to resist prompt injection.
 
+`DuplicateDetector` finds likely-duplicate issues using embeddings + cosine
+similarity. Issues are embedded with a **pinned** model (`voyage-3`, 1024-dim;
+ADR-0002) behind an `Embedder` interface, and stored behind a `VectorStore`
+interface — an in-memory store ships now; a pgvector adapter slots in later
+without changing callers. A pair is only ever reported as a duplicate when its
+score clears a **documented, configurable threshold**
+(`DEFAULT_SIMILARITY_THRESHOLD`, currently `0.85`); the result is
+evidence-bearing — a linked issue number and its score — never an unsupported
+claim, and *no duplicate found* is a valid grounded outcome (CLAUDE.md §1).
+Set `VOYAGE_API_KEY` and install the extra (`uv sync --extra dedup`) to use it
+live; unit tests run against an injected stub, no network.
+
 ## Architecture & decisions
 
 A full architecture section and demo land in M7. Design decisions are recorded

@@ -11,6 +11,12 @@ dependencies = [
     "pydantic-settings>=2.3,<3",
 ]
 
+[project.optional-dependencies]
+# Voyage AI embeddings for duplicate-issue detection (steward.triage.dedup).
+# Optional so default installs / CI stay light — the dedup code paths are unit
+# tested against an injected stub. Enable live with `uv sync --extra dedup`.
+dedup = ["voyageai>=0.3,<1"]
+
 [dependency-groups]
 # Dev tooling. uv installs this group by default (`uv sync`).
 dev = [
