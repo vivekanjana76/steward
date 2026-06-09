@@ -32,6 +32,22 @@ uv sync                 # create the venv and install deps (incl. dev tools)
 Copy [`.env.example`](.env.example) to `.env` and fill in keys as needed
 (`.env` is git-ignored; never commit secrets).
 
+## Model access
+
+Every Anthropic call goes through one module —
+[`src/steward/llm/client.py`](src/steward/llm/client.py) — so models are
+swappable in a single place (CLAUDE.md §4). Callers pick a logical **role**, not
+a model id:
+
+| Role                          | Model              |
+| ----------------------------- | ------------------ |
+| `routine`                     | `claude-sonnet-4-6` |
+| `planner` / `patch` / `verifier` | `claude-opus-4-8`   |
+
+`ModelClient.complete` returns normalized text + token usage;
+`ModelClient.structured` validates the reply into a caller-supplied Pydantic
+model via forced tool use. Set `ANTHROPIC_API_KEY` to use it live.
+
 ## Triage
 
 Incoming issues are turned into typed, validated snapshots by
@@ -41,7 +57,12 @@ Incoming issues are turned into typed, validated snapshots by
 free text is sanitized at this boundary — invisible/bidi Unicode and control
 characters are stripped — and prompt-injection heuristics run once across the
 title, body, and comments, recording any hits in `injection_signals` (evidence
-to act cautiously, never proof). Classification and dedup build on this model.
+to act cautiously, never proof).
+
+`IssueClassifier` then labels each issue as **bug / feature / question** with a
+confidence and short rationale via the central model client (structured output).
+Low-confidence results route to `status:needs-info` rather than guessing, and
+the issue is presented to the model strictly as data to resist prompt injection.
 
 ## Architecture & decisions
 
