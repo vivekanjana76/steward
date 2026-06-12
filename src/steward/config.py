@@ -38,6 +38,10 @@ class Settings(BaseSettings):
         default=None, validation_alias="ANTHROPIC_API_KEY", repr=False
     )
 
+    # Voyage AI — embeddings for duplicate-issue detection (required for live
+    # dedup; see steward.triage.dedup and ADR-0002).
+    voyage_api_key: str | None = Field(default=None, validation_alias="VOYAGE_API_KEY", repr=False)
+
     langfuse_public_key: str | None = Field(
         default=None, validation_alias="LANGFUSE_PUBLIC_KEY", repr=False
     )

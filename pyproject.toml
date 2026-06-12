@@ -12,6 +12,10 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+# Voyage AI embeddings for duplicate-issue detection (steward.triage.dedup).
+# Optional so default installs / CI stay light — the dedup code paths are unit
+# tested against an injected stub. Enable live with `uv sync --extra dedup`.
+dedup = ["voyageai>=0.3,<1"]
 # Observability backend. Optional on purpose: tracing degrades to a no-op when
 # this is not installed (or keys are absent), so local dev and CI never depend
 # on Langfuse. Pinned to the v2 client API the Langfuse sink targets.
