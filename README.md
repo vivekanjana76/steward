@@ -103,6 +103,14 @@ chain** anchored at a genesis hash — rewriting, dropping, or reordering any
 historical entry breaks `verify_chain`, and the JSONL backend refuses to open
 a tampered file. The store exposes `append` and `records`, nothing else.
 
+Greylist actions pause for **explicit human approval**
+(`steward.policy.approvals`). `ApprovalQueue.request` accepts only a
+`require_approval` decision — a deny verdict can never even be queued — and
+`approve` is the sole producer of `ApprovedAction`, the execution proof
+executors demand for greylist work. Rejected and expired (default TTL 24 h)
+requests are terminal and never execute; every transition is audit-logged
+with the human actor (`human:<login>`) and the `trace_id`.
+
 ## Observability
 
 Every node and tool call can be wrapped in a span via
