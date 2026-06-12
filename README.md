@@ -32,6 +32,22 @@ uv sync                 # create the venv and install deps (incl. dev tools)
 Copy [`.env.example`](.env.example) to `.env` and fill in keys as needed
 (`.env` is git-ignored; never commit secrets).
 
+## Model access
+
+Every Anthropic call goes through one module —
+[`src/steward/llm/client.py`](src/steward/llm/client.py) — so models are
+swappable in a single place (CLAUDE.md §4). Callers pick a logical **role**, not
+a model id:
+
+| Role                          | Model              |
+| ----------------------------- | ------------------ |
+| `routine`                     | `claude-sonnet-4-6` |
+| `planner` / `patch` / `verifier` | `claude-opus-4-8`   |
+
+`ModelClient.complete` returns normalized text + token usage;
+`ModelClient.structured` validates the reply into a caller-supplied Pydantic
+model via forced tool use. Set `ANTHROPIC_API_KEY` to use it live.
+
 ## Observability
 
 Every node and tool call can be wrapped in a span via
