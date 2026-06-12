@@ -33,6 +33,9 @@ class Settings(BaseSettings):
     # Safety default: no world-mutating action executes live until explicitly
     # opted in. New action types ship in dry-run (CLAUDE.md §5).
     dry_run: bool = Field(default=True, validation_alias="STEWARD_DRY_RUN")
+    # Per-kind live opt-in: a comma-separated list of ActionKind values that may
+    # execute live once dry_run is off. Empty means nothing runs live even then.
+    live_actions: str = Field(default="", validation_alias="STEWARD_LIVE_ACTIONS")
 
     anthropic_api_key: str | None = Field(
         default=None, validation_alias="ANTHROPIC_API_KEY", repr=False

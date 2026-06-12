@@ -35,6 +35,13 @@ from steward.policy.engine import (
     classify,
     list_for,
 )
+from steward.policy.execute import (
+    ExecutionGate,
+    ExecutionResult,
+    ExecutionStatus,
+    Executor,
+    live_action_kinds,
+)
 
 __all__ = [
     "DEFAULT_APPROVAL_TTL",
@@ -50,6 +57,10 @@ __all__ = [
     "AuditLog",
     "AuditRecord",
     "AuthorizedAction",
+    "ExecutionGate",
+    "ExecutionResult",
+    "ExecutionStatus",
+    "Executor",
     "InMemoryAuditLog",
     "JsonlAuditLog",
     "PendingApproval",
@@ -61,5 +72,6 @@ __all__ = [
     "build_policy_engine",
     "classify",
     "list_for",
+    "live_action_kinds",
     "verify_chain",
 ]

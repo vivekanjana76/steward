@@ -111,6 +111,17 @@ executors demand for greylist work. Rejected and expired (default TTL 24 h)
 requests are terminal and never execute; every transition is audit-logged
 with the human actor (`human:<login>`) and the `trace_id`.
 
+All execution funnels through the **`ExecutionGate`** (`steward.policy.execute`).
+**Dry-run is the global default**: going live requires *both*
+`STEWARD_DRY_RUN=false` *and* the specific action kind opted in via
+`STEWARD_LIVE_ACTIONS` — and the dry-run path never invokes the executor, it
+only writes an audit record. The gate does not trust proof objects: it
+**re-classifies every action** and demands the proof type match the fresh
+verdict, so even a forged `AuthorizedAction` wrapping a blacklisted action is
+refused (and the refusal audited). The safety suite
+(`tests/test_policy_safety.py`) pins all of this exhaustively; its failures
+are release blockers — never weaken it to make a change pass.
+
 ## Observability
 
 Every node and tool call can be wrapped in a span via
