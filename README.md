@@ -76,6 +76,14 @@ claim, and *no duplicate found* is a valid grounded outcome (CLAUDE.md §1).
 Set `VOYAGE_API_KEY` and install the extra (`uv sync --extra dedup`) to use it
 live; unit tests run against an injected stub, no network.
 
+Applying a triage outcome to the real issue (`steward.triage.apply`) is
+Steward's first world-mutating capability, so the full trust machinery
+applies: the proposed comment + labels are **greylist actions** queued for
+human approval and executed only through the `ExecutionGate` — dry-run by
+default, audit-logged either way. The rendered comment is evidence-bearing
+(confidence, rationale, duplicate scores with linked issues) and every piece
+of Steward-authored content carries the `ai-generated` label.
+
 ## Trust policy
 
 No tool call that mutates the outside world executes without passing the
