@@ -76,6 +76,26 @@ claim, and *no duplicate found* is a valid grounded outcome (CLAUDE.md §1).
 Set `VOYAGE_API_KEY` and install the extra (`uv sync --extra dedup`) to use it
 live; unit tests run against an injected stub, no network.
 
+## Trust policy
+
+No tool call that mutates the outside world executes without passing the
+policy engine first ([`src/steward/policy/`](src/steward/policy/), CLAUDE.md
+§1/§3). Every proposed action is a typed `Action` classified by a pure,
+deterministic `classify()` into exactly one list:
+
+| List      | Verdict            | Examples                                              |
+| --------- | ------------------ | ----------------------------------------------------- |
+| whitelist | allow              | read issue, search code, find duplicates, sandboxed tests |
+| greylist  | require approval   | comment, apply labels, create/push branch, open draft PR |
+| blacklist | deny, always       | merge, force-push, push to default branch, delete branch |
+
+Any action aimed at a repository other than the configured
+`STEWARD_GITHUB_REPO` is denied regardless of kind. Enforcement is
+structural: executors require an `AuthorizedAction`, which only
+`PolicyEngine.authorize` produces, and it raises for anything but an `allow`
+verdict — there is no override parameter, by design. Every decision carries
+the rule that fired and a human-readable reason for the audit log.
+
 ## Observability
 
 Every node and tool call can be wrapped in a span via
