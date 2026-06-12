@@ -32,6 +32,17 @@ uv sync                 # create the venv and install deps (incl. dev tools)
 Copy [`.env.example`](.env.example) to `.env` and fill in keys as needed
 (`.env` is git-ignored; never commit secrets).
 
+## Triage
+
+Incoming issues are turned into typed, validated snapshots by
+[`src/steward/triage/`](src/steward/triage/).
+`normalize_issue(payload, comments)` maps a raw GitHub issue onto an immutable
+`NormalizedIssue`. Because issue text is **untrusted input** (CLAUDE.md §5), all
+free text is sanitized at this boundary — invisible/bidi Unicode and control
+characters are stripped — and prompt-injection heuristics run once across the
+title, body, and comments, recording any hits in `injection_signals` (evidence
+to act cautiously, never proof). Classification and dedup build on this model.
+
 ## Model access
 
 Every Anthropic call goes through one module —
