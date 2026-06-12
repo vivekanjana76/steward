@@ -96,6 +96,13 @@ structural: executors require an `AuthorizedAction`, which only
 verdict — there is no override parameter, by design. Every decision carries
 the rule that fired and a human-readable reason for the audit log.
 
+Every proposed or executed action (including dry-runs and denials) is recorded
+in an **append-only audit log** (`steward.policy.audit`). Records are frozen,
+carry the `trace_id` of their Langfuse trace, and form a SHA-256 **hash
+chain** anchored at a genesis hash — rewriting, dropping, or reordering any
+historical entry breaks `verify_chain`, and the JSONL backend refuses to open
+a tampered file. The store exposes `append` and `records`, nothing else.
+
 ## Observability
 
 Every node and tool call can be wrapped in a span via
