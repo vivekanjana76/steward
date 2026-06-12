@@ -1,0 +1,30 @@
+{
+  "$comment": "Copy to .mcp.json (git-ignored) and set the env vars in your shell or .env. Never put tokens in this file. See docs/dev-tooling.md.",
+  "mcpServers": {
+    "github": {
+      "command": "docker",
+      "args": [
+        "run",
+        "-i",
+        "--rm",
+        "-e",
+        "GITHUB_PERSONAL_ACCESS_TOKEN",
+        "ghcr.io/github/github-mcp-server"
+      ],
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_TOKEN}"
+      }
+    },
+    "context7": {
+      "command": "npx",
+      "args": ["-y", "@upstash/context7-mcp"]
+    },
+    "playwright": {
+      "command": "npx",
+      "args": ["-y", "@playwright/mcp@latest"]
+    },
+    "langfuse-docs": {
+      "url": "https://langfuse.com/api/mcp"
+    }
+  }
+}

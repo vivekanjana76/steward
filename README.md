@@ -149,4 +149,6 @@ uv sync --extra observability   # installs langfuse; set the keys in .env
 ## Architecture & decisions
 
 A full architecture section and demo land in M7. Design decisions are recorded
-as ADRs in [`docs/adr/`](docs/adr/).
+as ADRs in [`docs/adr/`](docs/adr/). Recommended development tooling — MCP
+servers and the checked-in agent skills — is documented in
+[`docs/dev-tooling.md`](docs/dev-tooling.md).
