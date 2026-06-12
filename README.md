@@ -32,17 +32,6 @@ uv sync                 # create the venv and install deps (incl. dev tools)
 Copy [`.env.example`](.env.example) to `.env` and fill in keys as needed
 (`.env` is git-ignored; never commit secrets).
 
-## Triage
-
-Incoming issues are turned into typed, validated snapshots by
-[`src/steward/triage/`](src/steward/triage/).
-`normalize_issue(payload, comments)` maps a raw GitHub issue onto an immutable
-`NormalizedIssue`. Because issue text is **untrusted input** (CLAUDE.md §5), all
-free text is sanitized at this boundary — invisible/bidi Unicode and control
-characters are stripped — and prompt-injection heuristics run once across the
-title, body, and comments, recording any hits in `injection_signals` (evidence
-to act cautiously, never proof). Classification and dedup build on this model.
-
 ## Model access
 
 Every Anthropic call goes through one module —
@@ -58,6 +47,22 @@ a model id:
 `ModelClient.complete` returns normalized text + token usage;
 `ModelClient.structured` validates the reply into a caller-supplied Pydantic
 model via forced tool use. Set `ANTHROPIC_API_KEY` to use it live.
+
+## Triage
+
+Incoming issues are turned into typed, validated snapshots by
+[`src/steward/triage/`](src/steward/triage/).
+`normalize_issue(payload, comments)` maps a raw GitHub issue onto an immutable
+`NormalizedIssue`. Because issue text is **untrusted input** (CLAUDE.md §5), all
+free text is sanitized at this boundary — invisible/bidi Unicode and control
+characters are stripped — and prompt-injection heuristics run once across the
+title, body, and comments, recording any hits in `injection_signals` (evidence
+to act cautiously, never proof).
+
+`IssueClassifier` then labels each issue as **bug / feature / question** with a
+confidence and short rationale via the central model client (structured output).
+Low-confidence results route to `status:needs-info` rather than guessing, and
+the issue is presented to the model strictly as data to resist prompt injection.
 
 ## Observability
 
