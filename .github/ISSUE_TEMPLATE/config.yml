@@ -1,0 +1,2 @@
+# Require issues to use a template (keeps every issue scoped + criteria-bearing).
+blank_issues_enabled: false

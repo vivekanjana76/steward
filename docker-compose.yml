@@ -1,0 +1,13 @@
+# Stub compose file so `just up` has a valid target during M1.
+#
+# Real services land in later milestones:
+#   - db        : Postgres + pgvector (duplicate-issue embeddings)   [M2]
+#   - api       : FastAPI service (agent + policy + audit)           [M3/M4]
+#   - dashboard : Next.js approval queue / traces / scorecard        [M7]
+#
+# Until then we run a no-op placeholder so the file is valid and `docker compose
+# config` succeeds in CI/local checks. Replace this as services are built.
+services:
+  placeholder:
+    image: hello-world
+    profiles: ["stub"]
