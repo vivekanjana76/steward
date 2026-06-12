@@ -11,6 +11,12 @@ dependencies = [
     "pydantic-settings>=2.3,<3",
 ]
 
+[project.optional-dependencies]
+# Observability backend. Optional on purpose: tracing degrades to a no-op when
+# this is not installed (or keys are absent), so local dev and CI never depend
+# on Langfuse. Pinned to the v2 client API the Langfuse sink targets.
+observability = ["langfuse>=2.0,<3"]
+
 [dependency-groups]
 # Dev tooling. uv installs this group by default (`uv sync`).
 dev = [
