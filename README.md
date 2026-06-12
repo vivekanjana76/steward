@@ -43,6 +43,46 @@ characters are stripped — and prompt-injection heuristics run once across the
 title, body, and comments, recording any hits in `injection_signals` (evidence
 to act cautiously, never proof). Classification and dedup build on this model.
 
+## Model access
+
+Every Anthropic call goes through one module —
+[`src/steward/llm/client.py`](src/steward/llm/client.py) — so models are
+swappable in a single place (CLAUDE.md §4). Callers pick a logical **role**, not
+a model id:
+
+| Role                          | Model              |
+| ----------------------------- | ------------------ |
+| `routine`                     | `claude-sonnet-4-6` |
+| `planner` / `patch` / `verifier` | `claude-opus-4-8`   |
+
+`ModelClient.complete` returns normalized text + token usage;
+`ModelClient.structured` validates the reply into a caller-supplied Pydantic
+model via forced tool use. Set `ANTHROPIC_API_KEY` to use it live.
+
+## Observability
+
+Every node and tool call can be wrapped in a span via
+[`src/steward/observability/`](src/steward/observability/), capturing latency,
+token usage, cost, and a `trace_id` for the audit log (CLAUDE.md §11):
+
+```python
+from steward.observability import get_tracer
+
+tracer = get_tracer()
+with tracer.span("triage", trace_id=trace_id) as span:
+    span.record_usage(input_tokens=120, output_tokens=30)
+    span.set_cost(0.0021)
+```
+
+Tracing is **Langfuse-backed when configured and a no-op otherwise** — it never
+makes network calls or raises when `LANGFUSE_PUBLIC_KEY`/`LANGFUSE_SECRET_KEY`
+are absent, so local dev and CI are unaffected. Enable the live backend with the
+optional extra:
+
+```bash
+uv sync --extra observability   # installs langfuse; set the keys in .env
+```
+
 ## Architecture & decisions
 
 A full architecture section and demo land in M7. Design decisions are recorded
