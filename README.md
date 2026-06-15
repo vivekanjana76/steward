@@ -174,6 +174,26 @@ the `docker` SDK is a lazy, optional extra (`uv sync --extra sandbox`) needed
 only for live runs. Two integration tests (gated by `STEWARD_SANDBOX_IT=1` and a
 reachable daemon) prove a real run passes and that networking is truly disabled.
 
+## Fix generation
+
+For a reproduced, well-scoped bug, [`src/steward/fix/`](src/steward/fix/)
+generates a candidate fix and proves it (CLAUDE.md §1):
+
+- **`PatchGenerator`** (the graph's `Patcher`) asks the model — the **patch**
+  role → Opus, via the one central client — for the smallest unified diff plus a
+  proof test, as structured output. A diff that is malformed or **does not apply
+  cleanly is rejected here**, never downstream.
+- **`apply_patch`** is a small, pure, fully unit-tested unified-diff applier: it
+  returns the patched contents or raises `PatchDoesNotApply` on any context
+  mismatch — Steward never applies a patch it cannot place exactly.
+- **`SandboxProofTester`** (the graph's `Tester`) proves the patch by a genuine
+  **fail-before / pass-after** run in the sandbox: it runs the proof test
+  unpatched (expecting failure) and again with the diff applied (expecting
+  success), and reports `passed` **only when both hold** — a proof test that
+  already passes without the fix proves nothing and is rejected. The host
+  checkout is never mutated (all work happens in temp copies, then the
+  container).
+
 ## Agent graph
 
 The capabilities above are orchestrated by a stateful **LangGraph** graph
