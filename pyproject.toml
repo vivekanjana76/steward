@@ -22,6 +22,11 @@ dedup = ["voyageai>=0.3,<1"]
 # this is not installed (or keys are absent), so local dev and CI never depend
 # on Langfuse. Pinned to the v2 client API the Langfuse sink targets.
 observability = ["langfuse>=2.0,<3"]
+# Docker SDK for live sandboxed test runs (steward.sandbox.docker_backend).
+# Optional so default installs / CI stay light — the runner is unit-tested
+# against an injected fake backend, and the Docker import is lazy. Enable live
+# with `uv sync --extra sandbox`.
+sandbox = ["docker>=7,<8"]
 
 [dependency-groups]
 # Dev tooling. uv installs this group by default (`uv sync`).
