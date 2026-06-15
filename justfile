@@ -27,6 +27,11 @@ lint:
 test:
     uv run pytest
 
+# Run the FastAPI service (audit log, approval queue, scorecard) for the dashboard.
+# raw: uv run uvicorn steward.api.app:app --reload --port 8000
+api:
+    uv run uvicorn steward.api.app:app --reload --port 8000
+
 # Run the eval suite and compare to evals/baseline.json (lands in M6, #20-#24).
 # raw: uv run python -m steward.evals
 eval:
