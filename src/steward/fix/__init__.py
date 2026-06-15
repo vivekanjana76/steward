@@ -10,6 +10,14 @@
 
 from __future__ import annotations
 
+from steward.fix.draft_pr import (
+    AI_GENERATED_LABEL,
+    DraftPullRequestOpener,
+    GitHubClient,
+    PullRequestRef,
+    branch_name,
+    render_pr_body,
+)
 from steward.fix.generate import FixGenerationError, PatchGenerator
 from steward.fix.patch import (
     PatchDoesNotApply,
@@ -20,12 +28,18 @@ from steward.fix.patch import (
 from steward.fix.prooftest import DEFAULT_PROOF_COMMAND, SandboxProofTester
 
 __all__ = [
+    "AI_GENERATED_LABEL",
     "DEFAULT_PROOF_COMMAND",
+    "DraftPullRequestOpener",
     "FixGenerationError",
+    "GitHubClient",
     "PatchDoesNotApply",
     "PatchError",
     "PatchGenerator",
+    "PullRequestRef",
     "SandboxProofTester",
     "apply_patch",
+    "branch_name",
     "patched_paths",
+    "render_pr_body",
 ]
