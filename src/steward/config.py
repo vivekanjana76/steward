@@ -36,6 +36,10 @@ class Settings(BaseSettings):
     # Per-kind live opt-in: a comma-separated list of ActionKind values that may
     # execute live once dry_run is off. Empty means nothing runs live even then.
     live_actions: str = Field(default="", validation_alias="STEWARD_LIVE_ACTIONS")
+    # Dev-only: seed the API's in-memory audit log + approval queue with a small
+    # set of realistic actions on startup, so the dashboard demo is non-empty
+    # before the live agent is wired. Never enabled in prod.
+    seed_demo: bool = Field(default=False, validation_alias="STEWARD_SEED_DEMO")
 
     anthropic_api_key: str | None = Field(
         default=None, validation_alias="ANTHROPIC_API_KEY", repr=False

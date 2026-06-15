@@ -28,6 +28,7 @@ uv sync                 # create the venv and install deps (incl. dev tools)
 | Lint + types | `just lint` | `uv run ruff check . && uv run ruff format --check . && uv run pyright` |
 | Tests        | `just test` | `uv run pytest`                                                         |
 | Stack up     | `just up`   | `docker compose up --build`                                             |
+| API service  | `just api`  | `uv run uvicorn steward.api.app:app --reload --port 8000`              |
 
 Copy [`.env.example`](.env.example) to `.env` and fill in keys as needed
 (`.env` is git-ignored; never commit secrets).
@@ -153,6 +154,32 @@ optional extra:
 ```bash
 uv sync --extra observability   # installs langfuse; set the keys in .env
 ```
+
+## API service
+
+A thin **FastAPI** service ([`src/steward/api/`](src/steward/api/)) sits between
+the dashboard and the policy core (CLAUDE.md §3/§13). It is read-mostly and adds
+**no new world-mutating capability** — it projects the existing audit log and
+approval queue into UI-facing views and routes approve/reject through the
+`ApprovalQueue`, so every policy invariant (greylist needs approval,
+rejected/expired are terminal, every transition audited) holds exactly as
+elsewhere.
+
+| Endpoint                                | Purpose                                              |
+| --------------------------------------- | ---------------------------------------------------- |
+| `GET /api/health`                       | Liveness + safety posture (env, dry-run, target repo) |
+| `GET /api/actions`                      | Append-only audit log, most-recent-first             |
+| `GET /api/approvals`                    | Pending greylist approval requests                   |
+| `POST /api/approvals/{id}/approve`      | Approve via the queue (audited as `human:<by>`)      |
+| `POST /api/approvals/{id}/reject`       | Reject (terminal — never executes)                   |
+| `GET /api/scorecard`                    | Published eval metrics, or an honest "not yet measured" |
+
+Run it with `just api` (raw: `uv run uvicorn steward.api.app:app --reload`) and
+open `http://localhost:8000/docs` for the OpenAPI UI. Handlers are thin and the
+audit log + approval queue are in-memory for now (a durable backend slots in
+behind the same protocols). Set `STEWARD_SEED_DEMO=true` to populate a small
+slice of **real** policy decisions so the dashboard demo is non-empty before the
+live agent is wired.
 
 ## Architecture & decisions
 
