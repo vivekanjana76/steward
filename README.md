@@ -174,6 +174,35 @@ the `docker` SDK is a lazy, optional extra (`uv sync --extra sandbox`) needed
 only for live runs. Two integration tests (gated by `STEWARD_SANDBOX_IT=1` and a
 reachable daemon) prove a real run passes and that networking is truly disabled.
 
+## Agent graph
+
+The capabilities above are orchestrated by a stateful **LangGraph** graph
+([`src/steward/graph/`](src/steward/graph/), ADR-0001) that models the cycle from
+CLAUDE.md §3:
+
+```
+triage → route → reproduce → hypothesize → patch → test → VERIFY → open draft PR
+```
+
+Two properties are structural, not incidental:
+
+- **Backtracking is real.** A failed reproduction or a non-bug routes the run to
+  a terminal state; a *failing proof test* routes **back** to re-hypothesize
+  (bounded by `max_attempts`), never forward. The graph gives up honestly rather
+  than proposing an unproven fix.
+- **VERIFY gates every claim.** No "fixed" verdict — and no draft PR — is emitted
+  unless the bug was reproduced, a patch exists, and its proof test **passed** in
+  the sandbox (CLAUDE.md §1).
+
+State is one typed `GraphState` (Pydantic) at every node boundary, with
+checkpointing enabled so a run is resumable and inspectable. The graph owns
+control flow only; the work is delegated to capability seams
+(`Reproducer`, `Hypothesizer`, `Patcher`, `Tester`, `PullRequestOpener`) — triage
+is wired to the real classifier, and the reproduce/patch/PR implementations land
+in their own issues (#15, #16) and route through the policy engine there. This
+lets the full orchestration be integration-tested today against deterministic
+fakes — no model, Docker, or network.
+
 ## API service
 
 A thin **FastAPI** service ([`src/steward/api/`](src/steward/api/)) sits between
