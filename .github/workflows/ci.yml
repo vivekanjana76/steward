@@ -39,3 +39,28 @@ jobs:
 
       - name: Pytest
         run: uv run pytest
+
+  dashboard:
+    name: dashboard build + lint
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: dashboard
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: dashboard/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type check
+        run: npm run typecheck
+
+      - name: Build (includes ESLint)
+        run: npm run build

@@ -181,6 +181,21 @@ behind the same protocols). Set `STEWARD_SEED_DEMO=true` to populate a small
 slice of **real** policy decisions so the dashboard demo is non-empty before the
 live agent is wired.
 
+## Dashboard
+
+The maintainer's **command center** lives in [`dashboard/`](dashboard/) — a dark,
+glassmorphic Next.js (App Router) + Tailwind UI over the API: the live audit-log
+**Activity Stream**, the greylist **Approval Queue** (approve/reject through the
+policy queue, never a direct mutation), and the eval **Scorecard**. It reads the
+API and degrades to an honest "core offline" state when it can't.
+
+```bash
+STEWARD_SEED_DEMO=true just api      # terminal 1 (from repo root)
+cd dashboard && npm install && npm run dev   # terminal 2 -> http://localhost:3000
+```
+
+See [`dashboard/README.md`](dashboard/README.md) for details.
+
 ## Architecture & decisions
 
 A full architecture section and demo land in M7. Design decisions are recorded

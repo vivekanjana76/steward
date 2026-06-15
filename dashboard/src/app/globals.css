@@ -1,0 +1,149 @@
+@import "tailwindcss";
+
+/* ----------------------------------------------------------------------------
+   Steward command-center theme. Dark, glassmorphic, neon. Cyan = Steward,
+   violet = policy, and the verdict palette (emerald/amber/rose) is reused from
+   the API so the UI and the audit log speak the same language.
+---------------------------------------------------------------------------- */
+@theme {
+  --color-void: #05060c;
+  --color-abyss: #080a14;
+  --color-steward: #22d3ee;
+  --color-policy: #8b5cf6;
+
+  --font-display: var(--font-space-grotesk), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, monospace;
+}
+
+:root {
+  color-scheme: dark;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--color-void);
+  color: rgb(226 232 240);
+  font-family: var(--font-display);
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* Layered ambient glow behind everything. */
+.aurora {
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  background:
+    radial-gradient(60rem 60rem at 12% -10%, rgba(34, 211, 238, 0.16), transparent 60%),
+    radial-gradient(55rem 55rem at 100% 0%, rgba(139, 92, 246, 0.16), transparent 55%),
+    radial-gradient(50rem 50rem at 50% 120%, rgba(34, 211, 238, 0.08), transparent 60%);
+  animation: aurora-drift 22s ease-in-out infinite alternate;
+}
+
+/* Faint engineering grid. */
+.grid-veil {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background-image:
+    linear-gradient(rgba(148, 163, 184, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(148, 163, 184, 0.05) 1px, transparent 1px);
+  background-size: 44px 44px;
+  mask-image: radial-gradient(ellipse 120% 90% at 50% 0%, black 30%, transparent 80%);
+  animation: grid-pan 60s linear infinite;
+}
+
+@keyframes aurora-drift {
+  0% { transform: translate3d(0, 0, 0) scale(1); }
+  100% { transform: translate3d(0, -2%, 0) scale(1.08); }
+}
+
+@keyframes grid-pan {
+  from { background-position: 0 0, 0 0; }
+  to { background-position: 44px 880px, 44px 880px; }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
+}
+
+@keyframes shimmer {
+  100% { transform: translateX(100%); }
+}
+
+@keyframes rise {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ---- Reusable surface treatments ---- */
+@layer components {
+  .glass {
+    background: linear-gradient(
+      160deg,
+      rgba(255, 255, 255, 0.045),
+      rgba(255, 255, 255, 0.015)
+    );
+    border: 1px solid rgba(148, 163, 184, 0.14);
+    backdrop-filter: blur(14px);
+    box-shadow:
+      0 1px 0 0 rgba(255, 255, 255, 0.06) inset,
+      0 24px 60px -28px rgba(0, 0, 0, 0.9);
+  }
+
+  .glass-hover {
+    transition: border-color 0.25s ease, transform 0.25s ease, box-shadow 0.25s ease;
+  }
+  .glass-hover:hover {
+    border-color: rgba(34, 211, 238, 0.35);
+    transform: translateY(-2px);
+    box-shadow:
+      0 1px 0 0 rgba(255, 255, 255, 0.08) inset,
+      0 30px 70px -30px rgba(34, 211, 238, 0.25);
+  }
+
+  .hairline {
+    border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+  }
+
+  .live-dot {
+    box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.6);
+    animation: ping-soft 2.4s cubic-bezier(0, 0, 0.2, 1) infinite;
+  }
+}
+
+@keyframes ping-soft {
+  0% { box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.5); }
+  70% { box-shadow: 0 0 0 10px rgba(52, 211, 153, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(52, 211, 153, 0); }
+}
+
+/* Thin neon scrollbars to match the aesthetic. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(34, 211, 238, 0.35) transparent;
+}
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-thumb {
+  background: rgba(34, 211, 238, 0.3);
+  border-radius: 99px;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: rgba(34, 211, 238, 0.5);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aurora,
+  .grid-veil,
+  .live-dot {
+    animation: none;
+  }
+}
