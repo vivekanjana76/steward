@@ -155,6 +155,25 @@ optional extra:
 uv sync --extra observability   # installs langfuse; set the keys in .env
 ```
 
+## Sandboxed test runs
+
+Reproduction and fix-verification depend on running a repo's tests and trusting
+the result, so the run must be **isolated** (CLAUDE.md §4/§12). The sandbox
+([`src/steward/sandbox/`](src/steward/sandbox/)) runs a test command in a
+**disposable Docker container**: the checkout is bind-mounted **read-only** and
+copied to a writable workdir *inside* the container (the host files are never
+mutated), **networking is disabled by default**, and memory and time are
+bounded. It returns a typed `SandboxResult` (`passed`, exit code, captured
+stdout/stderr, duration, `timed_out`) — `passed` is true only on a clean exit
+within the timeout, so a failure or timeout carries its own evidence.
+
+Running tests is a **whitelist** action precisely because it is sandboxed. The
+orchestration is split from the container mechanics behind a `ContainerBackend`
+protocol, so the runner is unit-tested against a fake backend with no Docker;
+the `docker` SDK is a lazy, optional extra (`uv sync --extra sandbox`) needed
+only for live runs. Two integration tests (gated by `STEWARD_SANDBOX_IT=1` and a
+reachable daemon) prove a real run passes and that networking is truly disabled.
+
 ## API service
 
 A thin **FastAPI** service ([`src/steward/api/`](src/steward/api/)) sits between
