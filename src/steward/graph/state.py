@@ -64,12 +64,18 @@ class ReproOutcome(BaseModel):
 
 
 class ProposedPatch(BaseModel):
-    """A candidate fix plus the test that is meant to prove it (lands fully in #15)."""
+    """A candidate fix plus the test that is meant to prove it.
+
+    ``diff`` is a unified diff scoped to the bug; ``proof_test`` is a test file
+    written at ``proof_test_path`` that must fail on the unpatched repo and pass
+    on the patched one (the evidence the VERIFY node checks).
+    """
 
     model_config = ConfigDict(frozen=True)
 
     diff: str = Field(min_length=1)
     proof_test: str = Field(min_length=1)
+    proof_test_path: str = Field(default="test_steward_proof.py", min_length=1)
     rationale: str = ""
 
 
