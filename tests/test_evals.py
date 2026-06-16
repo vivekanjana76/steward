@@ -169,6 +169,17 @@ def test_gate_flags_a_missing_metric() -> None:
     assert regs[0].metric == "triage_f1"
 
 
+def test_scorecard_renders_metrics_and_pending_rows() -> None:
+    from steward.evals.scorecard import render_scorecard
+
+    report = build_report(Settings(_env_file=None))  # type: ignore[call-arg]
+    table = render_scorecard(report)
+    assert "Triage classification (macro-F1)" in table
+    assert "Reproduction verdict (accuracy)" in table
+    assert "not yet measured (#22)" in table  # honest about the unmeasured fix metric
+    assert "backend **offline**" in table
+
+
 def test_committed_baseline_is_not_below_current_offline_run() -> None:
     # The committed baseline must be achievable by the offline harness, so CI
     # (which has no keys) stays green.

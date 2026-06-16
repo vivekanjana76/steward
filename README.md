@@ -14,6 +14,36 @@ policy — and it proves its reliability with published eval scores. See
 > Status: early scaffolding. Capabilities are built milestone-by-milestone
 > (M1–M7); see the GitHub issues and milestones.
 
+## Scorecard
+
+Steward proves its reliability with numbers, published honestly — including
+where it isn't measured yet (CLAUDE.md §1/§10). These are gated in CI against
+[`evals/baseline.json`](evals/baseline.json); a PR that drops any metric fails.
+
+| Capability | Result |
+| ---------- | ------ |
+| Triage classification (macro-F1) | 1.000 |
+| Triage classification (accuracy) | 1.000 |
+| Prompt-injection surfacing (recall) | 1.000 |
+| Duplicate detection (precision) | 1.000 |
+| Duplicate detection (recall) | 1.000 |
+| Reproduction verdict (accuracy) | 1.000 |
+| Fix success — SWE-bench Lite (% resolved) | not yet measured (#22) |
+| Avg cost / action (USD) | not yet measured (live run) |
+| Avg latency / action (s) | not yet measured (live run) |
+
+_Subset `triage+repro-v1` · backend **offline** · generated 2026-06-16._
+
+> **Read these honestly.** The numbers above come from the deterministic
+> **offline** reference backends (no model/embedding keys configured yet), run
+> against small curated datasets — they validate the harness and the gate, not
+> the live model's quality. Fix success, cost, and latency need live runs and
+> are not yet measured. When keys land, `just eval` produces live numbers and
+> the baseline is re-set in a reviewed PR.
+>
+> **Update:** regenerate with `just eval`, then paste the output of
+> `uv run python -m steward.evals.scorecard` here.
+
 ## Development
 
 Requires **Python 3.12+** and [`uv`](https://docs.astral.sh/uv/). `just` is
