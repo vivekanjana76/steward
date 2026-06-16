@@ -310,6 +310,29 @@ the surface can't drift. See the standalone
 [`src/steward/mcp/README.md`](src/steward/mcp/README.md) for per-tool docs and
 example calls.
 
+## Evaluation
+
+Evaluation is first-class product code (CLAUDE.md §10). The suite
+([`src/steward/evals/`](src/steward/evals/)) scores the triage capabilities
+against versioned, labeled datasets in [`evals/`](evals/) — classification
+accuracy/F1, prompt-injection surfacing, and duplicate-detection
+precision/recall — writes `evals/report.json`, and **gates** against
+`evals/baseline.json`: a PR that drops any core metric fails CI. Raising the
+baseline is its own reviewed PR; eval cases are never weakened to pass.
+
+```bash
+just eval        # raw: uv run python -m steward.evals
+```
+
+Backends are chosen by configuration: the **live** model / embeddings when their
+keys are set, deterministic **offline** reference backends otherwise — so the
+harness and the gate run end-to-end in CI with no keys. Every report records
+which backend produced the numbers, so an offline run is never mistaken for the
+live model's score. (Duplicate detection is scored the way it's used — an
+incoming issue checked against the already-filed backlog, so a claim must point
+to an earlier issue.) The reproduction and SWE-bench fix evals, and the README
+scorecard table, follow in #21 / #22 / #24.
+
 ## Architecture & decisions
 
 A full architecture section and demo land in M7. Design decisions are recorded

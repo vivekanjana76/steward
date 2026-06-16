@@ -40,6 +40,9 @@ jobs:
       - name: Pytest
         run: uv run pytest
 
+      - name: Eval gate (no regression vs evals/baseline.json)
+        run: uv run python -m steward.evals
+
   dashboard:
     name: dashboard build + lint
     runs-on: ubuntu-latest
