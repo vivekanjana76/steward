@@ -32,10 +32,10 @@ test:
 api:
     uv run uvicorn steward.api.app:app --reload --port 8000
 
-# Run the eval suite and compare to evals/baseline.json (lands in M6, #20-#24).
+# Run the eval suite, write evals/report.json, gate against evals/baseline.json.
 # raw: uv run python -m steward.evals
 eval:
-    @echo "eval harness lands in M6 (issues #20-#24)"
+    uv run python -m steward.evals
 
 # Run the Steward MCP server locally (stdio transport).
 # raw: uv run python -m steward.mcp

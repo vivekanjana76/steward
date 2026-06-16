@@ -207,7 +207,10 @@ def cosine_similarity(a: Sequence[float], b: Sequence[float]) -> float:
     norm_b = math.sqrt(math.fsum(y * y for y in b))
     if norm_a == 0.0 or norm_b == 0.0:
         return 0.0
-    return dot / (norm_a * norm_b)
+    # Clamp to honor the documented [-1, 1] range: floating-point rounding can
+    # nudge identical vectors to 1.0000000000000002, which downstream score
+    # fields (bounded at 1.0) would otherwise reject.
+    return max(-1.0, min(1.0, dot / (norm_a * norm_b)))
 
 
 class InMemoryVectorStore:

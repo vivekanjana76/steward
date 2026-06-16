@@ -4,9 +4,10 @@ Versioned, labeled cases for the triage capabilities: the issue classifier
 (`steward.triage.classify`) and the duplicate detector
 (`steward.triage.dedup`). The scoring harness (classification accuracy / F1 and
 duplicate-detection precision/recall, plus the `status:needs-info` routing and
-injection-surfacing checks) lands with the triage metrics work (**#20 / M6**);
-this directory currently holds the **data** those metrics run against, committed
-so it can grow case-by-case.
+injection-surfacing checks) lives in
+[`steward.evals`](../../src/steward/evals/) and runs via `just eval`; this
+directory holds the **data** those metrics run against, committed so it can grow
+case-by-case.
 
 > Every regression that's ever found becomes a permanent eval case (CLAUDE.md
 > §10). Add the failing issue here with its expected label — never weaken or
