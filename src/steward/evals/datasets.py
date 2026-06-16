@@ -19,6 +19,8 @@ EVALS_DIR = Path("evals")
 TRIAGE_DIR = EVALS_DIR / "triage"
 CLASSIFICATION_CASES = TRIAGE_DIR / "classification_cases.jsonl"
 DUPLICATE_CASES = TRIAGE_DIR / "duplicate_cases.jsonl"
+REPRO_DIR = EVALS_DIR / "repro"
+REPRO_CASES = REPRO_DIR / "repro_cases.jsonl"
 
 
 class ClassificationCase(BaseModel):
@@ -52,6 +54,18 @@ class DuplicateCase(BaseModel):
     notes: str | None = None
 
 
+class ReproCase(BaseModel):
+    """One labeled reproduction case; ``expected_verdict`` is the label."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    id: str
+    title: str
+    body: str = ""
+    expected_verdict: str
+    notes: str | None = None
+
+
 def _read_jsonl(path: Path) -> Iterator[dict[str, object]]:
     with path.open("r", encoding="utf-8") as handle:
         for line in handle:
@@ -67,3 +81,8 @@ def load_classification_cases(path: Path = CLASSIFICATION_CASES) -> list[Classif
 def load_duplicate_cases(path: Path = DUPLICATE_CASES) -> list[DuplicateCase]:
     """Load and validate the duplicate-detection corpus."""
     return [DuplicateCase.model_validate(row) for row in _read_jsonl(path)]
+
+
+def load_repro_cases(path: Path = REPRO_CASES) -> list[ReproCase]:
+    """Load and validate the reproduction-verdict dataset."""
+    return [ReproCase.model_validate(row) for row in _read_jsonl(path)]

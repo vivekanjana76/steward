@@ -15,6 +15,7 @@ import math
 import re
 from collections.abc import Sequence
 
+from steward.graph.state import ReproOutcome, ReproVerdict
 from steward.triage.classify import IssueCategory, TriageDecision
 from steward.triage.models import NormalizedIssue
 
@@ -170,6 +171,64 @@ class OfflineClassifier:
             rationale=f"keyword heuristic matched {scores[best]} {best.value} term(s)",
             needs_info=False,
             injection_signals=issue.injection_signals,
+        )
+
+
+# Cues the offline reproducer keys on (lowercased substring match).
+_CNR_CUES = (
+    "sometimes",
+    "intermittent",
+    "occasionally",
+    "random",
+    "cannot reproduce",
+    "can't reproduce",
+    "only on my machine",
+    "not sure how to reproduce",
+    "rarely",
+)
+_REPRO_CUES = (
+    "steps to reproduce",
+    "steps:",
+    "every time",
+    "100%",
+    "consistently",
+    "traceback",
+    "stack trace",
+    "segfault",
+    "reproduce by",
+)
+
+
+class OfflineReproducer:
+    """A deterministic content-heuristic stand-in for the reproducer (offline).
+
+    Decides a verdict from the report's text — too little detail routes to
+    needs-info (never a guess), explicit non-determinism to could-not-reproduce,
+    and clear deterministic steps/evidence to reproduced. No sandbox, fully
+    reproducible. Returns a :class:`ReproOutcome` with no evidence (an offline
+    run executes nothing).
+    """
+
+    def reproduce(self, issue: NormalizedIssue) -> ReproOutcome:
+        text = f"{issue.title}\n{issue.body}".lower()
+        informative = f"{issue.title} {issue.body}".strip()
+        if len(informative) < 30:
+            return ReproOutcome(
+                verdict=ReproVerdict.NEEDS_INFO, summary="too little detail to attempt reproduction"
+            )
+        if any(cue in text for cue in _CNR_CUES):
+            return ReproOutcome(
+                verdict=ReproVerdict.COULD_NOT_REPRODUCE,
+                summary="report describes non-deterministic or environment-specific behavior",
+            )
+        if any(cue in text for cue in _REPRO_CUES):
+            return ReproOutcome(
+                verdict=ReproVerdict.REPRODUCED,
+                summary="report has clear, deterministic reproduction steps/evidence",
+            )
+        return ReproOutcome(
+            verdict=ReproVerdict.COULD_NOT_REPRODUCE,
+            summary="no deterministic reproduction signal found",
         )
 
 

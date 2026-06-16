@@ -18,8 +18,12 @@ import sys
 from pathlib import Path
 
 from steward.config import Settings, get_settings
-from steward.evals.datasets import load_classification_cases, load_duplicate_cases
-from steward.evals.offline import HashingTfEmbedder, OfflineClassifier
+from steward.evals.datasets import (
+    load_classification_cases,
+    load_duplicate_cases,
+    load_repro_cases,
+)
+from steward.evals.offline import HashingTfEmbedder, OfflineClassifier, OfflineReproducer
 from steward.evals.report import (
     BASELINE_PATH,
     REPORT_PATH,
@@ -27,6 +31,7 @@ from steward.evals.report import (
     check_regressions,
     load_baseline,
 )
+from steward.evals.repro import Reproduce, run_repro_eval
 from steward.evals.triage import Classify, run_classification_eval, run_dedup_eval
 from steward.triage.dedup import (
     DEFAULT_SIMILARITY_THRESHOLD,
@@ -36,7 +41,7 @@ from steward.triage.dedup import (
 )
 
 _OFFLINE_DEDUP_THRESHOLD = 0.25
-_SUBSET = "triage-v1"
+_SUBSET = "triage+repro-v1"
 
 
 def _classifier(settings: Settings) -> tuple[Classify, str]:
@@ -59,14 +64,22 @@ def _embedder(settings: Settings) -> tuple[Embedder, float, str]:
     return HashingTfEmbedder(), _OFFLINE_DEDUP_THRESHOLD, "offline"
 
 
+def _reproducer(settings: Settings) -> tuple[Reproduce, str]:
+    # No sandbox-backed reproducer exists yet; the offline content heuristic is
+    # the reference until one lands. Structured this way so a live one slots in.
+    return OfflineReproducer().reproduce, "offline"
+
+
 def build_report(settings: Settings) -> EvalReport:
     """Run every eval against the configured backends and assemble the report."""
     classify, clf_backend = _classifier(settings)
     embedder, threshold, emb_backend = _embedder(settings)
+    reproduce, repro_backend = _reproducer(settings)
 
     classification = run_classification_eval(load_classification_cases(), classify)
     detector = DuplicateDetector(embedder, InMemoryVectorStore(), threshold=threshold)
     dedup = run_dedup_eval(load_duplicate_cases(), detector)
+    repro = run_repro_eval(load_repro_cases(), reproduce)
 
     metrics = {
         "triage_f1": classification.metrics.macro_f1,
@@ -74,8 +87,10 @@ def build_report(settings: Settings) -> EvalReport:
         "injection_recall": classification.injection_recall,
         "dedup_precision": dedup.precision,
         "dedup_recall": dedup.recall,
+        "repro_accuracy": repro.accuracy,
+        "repro_f1": repro.macro_f1,
     }
-    backend = "live" if clf_backend == "live" and emb_backend == "live" else "offline"
+    live = clf_backend == "live" and emb_backend == "live" and repro_backend == "live"
     details = {
         "classification": {
             "backend": clf_backend,
@@ -88,8 +103,14 @@ def build_report(settings: Settings) -> EvalReport:
             "threshold": threshold,
             "counts": {"tp": dedup.tp, "fp": dedup.fp, "fn": dedup.fn, "tn": dedup.tn},
         },
+        "repro": {
+            "backend": repro_backend,
+            "per_class": {k: v.model_dump() for k, v in repro.per_class.items()},
+        },
     }
-    return EvalReport.create(backend=backend, subset=_SUBSET, metrics=metrics, details=details)
+    return EvalReport.create(
+        backend="live" if live else "offline", subset=_SUBSET, metrics=metrics, details=details
+    )
 
 
 def main(argv: list[str] | None = None) -> int:
