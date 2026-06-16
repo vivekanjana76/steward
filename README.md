@@ -194,6 +194,24 @@ generates a candidate fix and proves it (CLAUDE.md §1):
   checkout is never mutated (all work happens in temp copies, then the
   container).
 
+## Opening the draft PR
+
+When VERIFY confirms a fix, Steward opens a **draft** pull request
+([`src/steward/fix/draft_pr.py`](src/steward/fix/draft_pr.py)) — its most
+consequential action, so it runs entirely inside the trust machinery (CLAUDE.md
+§1/§5/§6):
+
+- Opening the PR is a **greylist `OPEN_DRAFT_PR`** action: classified by the
+  policy engine, **queued for human approval**, and executed only through the
+  **dry-run-by-default** `ExecutionGate`. `open_draft` *proposes* (queues) the
+  PR; nothing reaches GitHub until a human approves **and** the action is opted
+  in live. Steward **never targets a repo it doesn't own** — an off-target PR
+  can't even be queued.
+- The PR is always a **draft**, linked to the issue (`Closes #NN`), and clearly
+  **labeled AI-generated** (an `ai-generated` label plus a banner in the body),
+  carrying its grounding evidence: the reproduction and the passing proof test
+  (with the sandbox exit code and duration) and the trace id.
+
 ## Agent graph
 
 The capabilities above are orchestrated by a stateful **LangGraph** graph
