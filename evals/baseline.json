@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-06-16T15:46:23.942162+00:00",
+  "generated_at": "2026-06-16T15:51:37.959010+00:00",
   "backend": "offline",
   "subset": "triage-v1",
   "metrics": {
@@ -7,7 +7,9 @@
     "triage_accuracy": 1.0,
     "injection_recall": 1.0,
     "dedup_precision": 1.0,
-    "dedup_recall": 1.0
+    "dedup_recall": 1.0,
+    "repro_accuracy": 1.0,
+    "repro_f1": 1.0
   },
   "details": {
     "classification": {
@@ -49,6 +51,29 @@
         "fp": 0,
         "fn": 0,
         "tn": 4
+      }
+    },
+    "repro": {
+      "backend": "offline",
+      "per_class": {
+        "reproduced": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 3
+        },
+        "could_not_reproduce": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 3
+        },
+        "needs_info": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 2
+        }
       }
     }
   }

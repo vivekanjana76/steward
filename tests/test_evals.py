@@ -18,10 +18,12 @@ from steward.evals.datasets import (
     ClassificationCase,
     load_classification_cases,
     load_duplicate_cases,
+    load_repro_cases,
 )
 from steward.evals.metrics import binary_metrics, classification_metrics
-from steward.evals.offline import HashingTfEmbedder, OfflineClassifier
+from steward.evals.offline import HashingTfEmbedder, OfflineClassifier, OfflineReproducer
 from steward.evals.report import EvalReport, check_regressions, load_baseline
+from steward.evals.repro import REPRO_LABELS, run_repro_eval
 from steward.evals.run import build_report
 from steward.evals.triage import (
     TRIAGE_LABELS,
@@ -105,6 +107,32 @@ def test_classification_eval_reflects_a_wrong_prediction() -> None:
     assert result.metrics.accuracy == 0.0
 
 
+# --- reproduction verdict -----------------------------------------------------
+
+
+def test_repro_dataset_covers_every_verdict() -> None:
+    verdicts = {c.expected_verdict for c in load_repro_cases()}
+    assert verdicts == set(REPRO_LABELS)
+
+
+def test_offline_reproducer_scores_perfectly_on_dataset() -> None:
+    metrics = run_repro_eval(load_repro_cases(), OfflineReproducer().reproduce)
+    assert metrics.accuracy == 1.0
+    assert metrics.macro_f1 == 1.0
+
+
+def test_repro_eval_reflects_a_wrong_verdict() -> None:
+    from steward.evals.datasets import ReproCase
+    from steward.graph.state import ReproOutcome, ReproVerdict
+    from steward.triage.models import NormalizedIssue
+
+    def always_reproduced(issue: NormalizedIssue) -> ReproOutcome:
+        return ReproOutcome(verdict=ReproVerdict.REPRODUCED, summary="x")
+
+    cases = [ReproCase(id="a", title="t", body="b", expected_verdict="needs_info")]
+    assert run_repro_eval(cases, always_reproduced).accuracy == 0.0
+
+
 # --- report + gate ------------------------------------------------------------
 
 
@@ -113,6 +141,7 @@ def test_build_report_offline_is_clean() -> None:
     assert report.backend == "offline"
     assert report.metrics["triage_f1"] == 1.0
     assert report.metrics["dedup_recall"] == 1.0
+    assert report.metrics["repro_accuracy"] == 1.0
 
 
 def test_report_round_trips(tmp_path: Path) -> None:
