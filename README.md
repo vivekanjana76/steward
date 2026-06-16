@@ -305,7 +305,10 @@ through the policy engine, so a repo other than the configured target is denied.
 
 Run it with `just mcp` (raw: `uv run python -m steward.mcp`). The server starts
 without keys; tools needing a key/checkout report *"capability not configured"*
-honestly rather than faking a result.
+honestly rather than faking a result. Every tool's schema is contract-tested so
+the surface can't drift. See the standalone
+[`src/steward/mcp/README.md`](src/steward/mcp/README.md) for per-tool docs and
+example calls.
 
 ## Architecture & decisions
 
