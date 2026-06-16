@@ -13,6 +13,8 @@ dependencies = [
     "uvicorn[standard]>=0.30,<1",
     # Stateful orchestration graph with checkpointing + HITL interrupts (ADR-0001).
     "langgraph>=0.2,<1",
+    # The Steward MCP server: exposes Steward's capabilities as MCP tools (§2/§14).
+    "fastmcp>=2.0,<3",
 ]
 
 [project.optional-dependencies]

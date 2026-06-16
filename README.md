@@ -282,6 +282,31 @@ cd dashboard && npm install && npm run dev   # terminal 2 -> http://localhost:30
 
 See [`dashboard/README.md`](dashboard/README.md) for details.
 
+## Steward MCP server
+
+A **product deliverable** (CLAUDE.md §2/§14): a **FastMCP** server
+([`src/steward/mcp/`](src/steward/mcp/)) that exposes Steward's own capabilities
+as MCP tools, so any agent — including Claude Code — can drive Steward. Tool
+descriptions are written for a *cold* agent (when to call, what to pass, what
+comes back); they are product surface.
+
+| Tool | Returns |
+| ---- | ------- |
+| `get_issue_context` | sanitized issue snapshot + prompt-injection signals |
+| `find_duplicate_issues` | scored duplicate candidates (or none — grounded) |
+| `search_codebase` | located code hits (path + line + snippet) |
+| `run_repo_tests_sandboxed` | sandbox pass/fail + truncated logs |
+| `propose_patch` | a unified diff + proof test (validated to apply) |
+
+Every tool is **read-only or sandboxed**: Steward's world-mutating actions
+(commenting, labeling, opening PRs) are deliberately **not** exposed here — they
+stay behind the human approval queue. `run_repo_tests_sandboxed` is still routed
+through the policy engine, so a repo other than the configured target is denied.
+
+Run it with `just mcp` (raw: `uv run python -m steward.mcp`). The server starts
+without keys; tools needing a key/checkout report *"capability not configured"*
+honestly rather than faking a result.
+
 ## Architecture & decisions
 
 A full architecture section and demo land in M7. Design decisions are recorded

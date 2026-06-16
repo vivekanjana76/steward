@@ -37,10 +37,10 @@ api:
 eval:
     @echo "eval harness lands in M6 (issues #20-#24)"
 
-# Run the Steward MCP server locally (lands in M5, #17).
+# Run the Steward MCP server locally (stdio transport).
 # raw: uv run python -m steward.mcp
 mcp:
-    @echo "MCP server lands in M5 (issue #17)"
+    uv run python -m steward.mcp
 
 # Point Steward at the controlled demo repo, one full cycle in dry-run (M7, #25).
 # raw: uv run python -m steward.demo
