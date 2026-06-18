@@ -366,6 +366,25 @@ the surface can't drift. See the standalone
 [`src/steward/mcp/README.md`](src/steward/mcp/README.md) for per-tool docs and
 example calls.
 
+### Consuming external MCP servers
+
+The other direction (ADR-0003): the Steward **agent** can *consume* popular
+external MCP servers — e.g. **Context7** (live library docs) or
+**sequential-thinking** — as read-only **context** while it reasons about a fix.
+`ExternalToolHub` ([`src/steward/integrations/`](src/steward/integrations/))
+wraps the FastMCP client and connects to servers declared in a standard
+`.mcp.json`-shaped file (copy [`config/steward.mcp.example.json`](config/steward.mcp.example.json)
+to `config/steward.mcp.json`).
+
+Two rules are structural: every external result is run through Steward's
+sanitizer and prompt-injection detector and returned as `ExternalContext`
+(untrusted **data**, with any `injection_signals` flagged — never instructions,
+CLAUDE.md §5); and the hub is **read-only / advisory** — it exposes no
+repo-mutating path, so external tools never bypass the policy engine
+(CLAUDE.md §1). Off by default; tests run against an in-memory fake server with
+no network. (Distinct from [`.mcp.json.example`](.mcp.json.example), which is
+**dev tooling** for the engineer — see [`docs/dev-tooling.md`](docs/dev-tooling.md).)
+
 ## Evaluation
 
 Evaluation is first-class product code (CLAUDE.md §10). The suite

@@ -8,3 +8,4 @@ decision, numbered sequentially.
 
 - [ADR-0001: Technology stack](0001-stack-choice.md) — Accepted (2026-06-03)
 - [ADR-0002: Duplicate detection — embedding model & vector store](0002-dedup-embeddings.md) — Accepted (2026-06-09)
+- [ADR-0003: Consuming external MCP servers as untrusted context](0003-external-mcp-consumption.md) — Accepted (2026-06-18)

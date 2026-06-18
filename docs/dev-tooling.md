@@ -10,6 +10,11 @@ commit tokens).
 > Not to be confused with the **Steward MCP server** (issue #17, milestone
 > M5), which is a *product deliverable*. The servers below are development
 > tools.
+>
+> Also distinct: the Steward **agent** can *consume* external MCP servers as
+> read-only runtime context (ADR-0003, `steward.integrations.external_mcp`),
+> configured separately in `config/steward.mcp.json`. That is product behavior;
+> the `.mcp.json` servers below are for *you*, the engineer.
 
 ## Recommended MCP servers
 
