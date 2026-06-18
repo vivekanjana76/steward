@@ -26,11 +26,13 @@ def test_demo_reaches_expected_dispositions() -> None:
     result = run_demo()
     by_number = {r.number: r for r in result.issues}
 
-    # #1 bug → verified fix proposed as a draft PR (dry-run, pending approval).
+    # #1 bug → verified fix proposed as a draft PR (dry-run, pending approval),
+    # after the multi-agent review council approved it (#55).
     bug = by_number[1]
     assert bug.triage == "bug"
     assert bug.pr_branch is not None
     assert "draft PR proposed" in bug.disposition
+    assert bug.council is not None and bug.council.startswith("approve")
 
     # #2 is detected as a duplicate of the earlier bug — no fix attempted.
     dup = by_number[2]

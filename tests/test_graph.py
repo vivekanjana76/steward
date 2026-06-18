@@ -24,6 +24,7 @@ from steward.graph import (
     run_issue,
 )
 from steward.graph.state import GraphState
+from steward.review import CouncilReview, ReviewContext, ReviewFinding, ReviewVerdict
 from steward.sandbox import SandboxResult
 from steward.triage.classify import IssueCategory, TriageDecision
 from steward.triage.models import IssueState, NormalizedIssue
@@ -109,6 +110,22 @@ class RecordingPROpener:
         return OpenedPR(branch=f"fix/issue-{state.issue.number}", title="Fix", number=7, url="u")
 
 
+class ScriptedCouncil:
+    """Returns canned council verdicts in order, one per visit to the council."""
+
+    def __init__(self, *verdicts: ReviewVerdict):
+        self._verdicts = list(verdicts)
+        self.calls = 0
+
+    def review(self, context: ReviewContext) -> CouncilReview:
+        verdict = self._verdicts[self.calls]
+        self.calls += 1
+        finding = ReviewFinding(
+            dimension="security", verdict=verdict, rationale="fixture", citation="x"
+        )
+        return CouncilReview.aggregate([finding])
+
+
 def _deps(
     *,
     category: IssueCategory = IssueCategory.BUG,
@@ -117,6 +134,7 @@ def _deps(
     test_outcomes: tuple[bool, ...] = (True,),
     hypothesizer: CountingHypothesizer | None = None,
     pr_opener: RecordingPROpener | None = None,
+    council: ScriptedCouncil | None = None,
 ) -> StewardDeps:
     return StewardDeps(
         classifier=FakeClassifier(category, needs_info=needs_info),
@@ -125,6 +143,7 @@ def _deps(
         patcher=FakePatcher(),
         tester=ScriptedTester(*test_outcomes),
         pr_opener=pr_opener or RecordingPROpener(),
+        council=council,
     )
 
 
@@ -140,6 +159,52 @@ def test_happy_path_opens_pr() -> None:
     assert state.verified is True
     assert state.pr is not None and state.pr.branch == "fix/issue-1"
     assert pr.opened is True
+
+
+def test_council_approves_then_opens_pr() -> None:
+    pr = RecordingPROpener()
+    council = ScriptedCouncil(ReviewVerdict.APPROVE)
+    state = _run(_deps(pr_opener=pr, council=council))
+    assert state.outcome is GraphOutcome.FIX_PROPOSED
+    assert council.calls == 1
+    assert state.council_review is not None and state.council_review.approved
+    assert pr.opened is True
+
+
+def test_council_block_is_terminal_no_pr() -> None:
+    # A security block stops the PR even though the fix verified — and the outcome
+    # is the distinct REVIEW_REJECTED, not GAVE_UP.
+    pr = RecordingPROpener()
+    state = _run(_deps(pr_opener=pr, council=ScriptedCouncil(ReviewVerdict.BLOCK)))
+    assert state.outcome is GraphOutcome.REVIEW_REJECTED
+    assert state.verified is True  # the fix was grounded...
+    assert pr.opened is False  # ...but the council blocked it
+    assert state.council_review is not None
+    assert state.council_review.verdict is ReviewVerdict.BLOCK
+
+
+def test_council_request_changes_backtracks_then_opens_pr() -> None:
+    # First review asks for changes; the graph re-hypothesizes and the second
+    # review approves — real backtracking driven by the council, not the test.
+    hypo = CountingHypothesizer()
+    pr = RecordingPROpener()
+    council = ScriptedCouncil(ReviewVerdict.REQUEST_CHANGES, ReviewVerdict.APPROVE)
+    state = _run(
+        _deps(test_outcomes=(True, True), hypothesizer=hypo, pr_opener=pr, council=council),
+        max_attempts=3,
+    )
+    assert state.outcome is GraphOutcome.FIX_PROPOSED
+    assert council.calls == 2
+    assert hypo.calls == 2  # re-hypothesized after request-changes
+    assert pr.opened is True
+
+
+def test_council_request_changes_exhausted_gives_up() -> None:
+    pr = RecordingPROpener()
+    council = ScriptedCouncil(ReviewVerdict.REQUEST_CHANGES)
+    state = _run(_deps(test_outcomes=(True, True), pr_opener=pr, council=council), max_attempts=1)
+    assert state.outcome is GraphOutcome.GAVE_UP
+    assert pr.opened is False
 
 
 def test_non_bug_ends_after_triage() -> None:

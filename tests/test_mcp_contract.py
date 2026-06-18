@@ -25,6 +25,8 @@ from steward.mcp.schemas import CodeHit, CodeSearchResults, IssueContext, Sandbo
 from steward.mcp.server import build_server
 from steward.mcp.service import StewardTools
 from steward.policy.engine import ActionKind, PolicyEngine, PolicyList, list_for
+from steward.review.models import CouncilReview
+from steward.review.offline import build_offline_council
 from steward.sandbox import SandboxRunner, SandboxSpec
 from steward.sandbox.runner import ContainerRun
 from steward.triage.dedup import DuplicateCandidate, DuplicateReport
@@ -39,6 +41,7 @@ _OUTPUT_MODELS: dict[str, type[BaseModel]] = {
     "search_codebase": CodeSearchResults,
     "run_repo_tests_sandboxed": SandboxTestReport,
     "propose_patch": ProposedPatch,
+    "review_patch": CouncilReview,
 }
 
 # A valid arguments set for each tool, for the round-trip checks.
@@ -48,6 +51,7 @@ _CALL_ARGS: dict[str, dict[str, object]] = {
     "search_codebase": {"query": "x"},
     "run_repo_tests_sandboxed": {"repo": TARGET, "repo_path": ".", "command": "pytest"},
     "propose_patch": {"issue_number": 1, "hypothesis": "h"},
+    "review_patch": {"diff": "--- a/x\n+++ b/x\n+    return a - b\n", "proof_test": "assert f()"},
 }
 
 
@@ -96,6 +100,7 @@ def _server():
             duplicate_finder=_FakeDedup(),
             code_searcher=_FakeSearch(),
             patch_proposer=_FakePatcher(),
+            patch_reviewer=build_offline_council(),
             sandbox_runner=SandboxRunner(_PassBackend()),
         )
     )

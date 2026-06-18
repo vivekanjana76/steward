@@ -25,6 +25,8 @@ _METRIC_ROWS: tuple[tuple[str, str, str], ...] = (
     ("dedup_precision", "Duplicate detection (precision)", "score"),
     ("dedup_recall", "Duplicate detection (recall)", "score"),
     ("repro_accuracy", "Reproduction verdict (accuracy)", "score"),
+    ("review_accuracy", "Review council verdict (accuracy)", "score"),
+    ("review_f1", "Review council verdict (macro-F1)", "score"),
 )
 
 # Capabilities not yet measured — shown honestly rather than omitted.

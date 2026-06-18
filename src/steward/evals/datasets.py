@@ -21,6 +21,8 @@ CLASSIFICATION_CASES = TRIAGE_DIR / "classification_cases.jsonl"
 DUPLICATE_CASES = TRIAGE_DIR / "duplicate_cases.jsonl"
 REPRO_DIR = EVALS_DIR / "repro"
 REPRO_CASES = REPRO_DIR / "repro_cases.jsonl"
+REVIEW_DIR = EVALS_DIR / "review"
+REVIEW_CASES = REVIEW_DIR / "review_cases.jsonl"
 
 
 class ClassificationCase(BaseModel):
@@ -66,6 +68,24 @@ class ReproCase(BaseModel):
     notes: str | None = None
 
 
+class ReviewCase(BaseModel):
+    """One labeled patch-review case; ``expected_verdict`` is the council label.
+
+    ``expected_verdict`` is one of ``approve`` / ``request_changes`` / ``block``,
+    judged over the proposed ``diff`` and its ``proof_test`` (``test_passed`` says
+    whether that test was shown to pass in a sandbox).
+    """
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    id: str
+    diff: str
+    proof_test: str = ""
+    test_passed: bool = False
+    expected_verdict: str
+    notes: str | None = None
+
+
 def _read_jsonl(path: Path) -> Iterator[dict[str, object]]:
     with path.open("r", encoding="utf-8") as handle:
         for line in handle:
@@ -86,3 +106,8 @@ def load_duplicate_cases(path: Path = DUPLICATE_CASES) -> list[DuplicateCase]:
 def load_repro_cases(path: Path = REPRO_CASES) -> list[ReproCase]:
     """Load and validate the reproduction-verdict dataset."""
     return [ReproCase.model_validate(row) for row in _read_jsonl(path)]
+
+
+def load_review_cases(path: Path = REVIEW_CASES) -> list[ReviewCase]:
+    """Load and validate the patch-review dataset."""
+    return [ReviewCase.model_validate(row) for row in _read_jsonl(path)]

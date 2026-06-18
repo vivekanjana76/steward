@@ -22,6 +22,7 @@ from steward.evals.datasets import (
     load_classification_cases,
     load_duplicate_cases,
     load_repro_cases,
+    load_review_cases,
 )
 from steward.evals.offline import HashingTfEmbedder, OfflineClassifier, OfflineReproducer
 from steward.evals.report import (
@@ -32,7 +33,10 @@ from steward.evals.report import (
     load_baseline,
 )
 from steward.evals.repro import Reproduce, run_repro_eval
+from steward.evals.review import run_review_eval
 from steward.evals.triage import Classify, run_classification_eval, run_dedup_eval
+from steward.review.council import PatchReviewer
+from steward.review.offline import build_offline_council
 from steward.triage.dedup import (
     DEFAULT_SIMILARITY_THRESHOLD,
     DuplicateDetector,
@@ -41,7 +45,7 @@ from steward.triage.dedup import (
 )
 
 _OFFLINE_DEDUP_THRESHOLD = 0.25
-_SUBSET = "triage+repro-v1"
+_SUBSET = "triage+repro+review-v1"
 
 
 def _classifier(settings: Settings) -> tuple[Classify, str]:
@@ -70,16 +74,27 @@ def _reproducer(settings: Settings) -> tuple[Reproduce, str]:
     return OfflineReproducer().reproduce, "offline"
 
 
+def _council(settings: Settings) -> tuple[PatchReviewer, str]:
+    if settings.anthropic_api_key:
+        from steward.llm.client import build_model_client
+        from steward.review.council import build_llm_council
+
+        return build_llm_council(build_model_client(settings)), "live"
+    return build_offline_council(), "offline"
+
+
 def build_report(settings: Settings) -> EvalReport:
     """Run every eval against the configured backends and assemble the report."""
     classify, clf_backend = _classifier(settings)
     embedder, threshold, emb_backend = _embedder(settings)
     reproduce, repro_backend = _reproducer(settings)
+    council, review_backend = _council(settings)
 
     classification = run_classification_eval(load_classification_cases(), classify)
     detector = DuplicateDetector(embedder, InMemoryVectorStore(), threshold=threshold)
     dedup = run_dedup_eval(load_duplicate_cases(), detector)
     repro = run_repro_eval(load_repro_cases(), reproduce)
+    review = run_review_eval(load_review_cases(), council)
 
     metrics = {
         "triage_f1": classification.metrics.macro_f1,
@@ -89,8 +104,15 @@ def build_report(settings: Settings) -> EvalReport:
         "dedup_recall": dedup.recall,
         "repro_accuracy": repro.accuracy,
         "repro_f1": repro.macro_f1,
+        "review_accuracy": review.accuracy,
+        "review_f1": review.macro_f1,
     }
-    live = clf_backend == "live" and emb_backend == "live" and repro_backend == "live"
+    live = (
+        clf_backend == "live"
+        and emb_backend == "live"
+        and repro_backend == "live"
+        and review_backend == "live"
+    )
     details = {
         "classification": {
             "backend": clf_backend,
@@ -106,6 +128,11 @@ def build_report(settings: Settings) -> EvalReport:
         "repro": {
             "backend": repro_backend,
             "per_class": {k: v.model_dump() for k, v in repro.per_class.items()},
+        },
+        "review": {
+            "backend": review_backend,
+            "dimensions": list(getattr(council, "dimensions", ())),
+            "per_class": {k: v.model_dump() for k, v in review.per_class.items()},
         },
     }
     return EvalReport.create(

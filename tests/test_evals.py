@@ -19,17 +19,20 @@ from steward.evals.datasets import (
     load_classification_cases,
     load_duplicate_cases,
     load_repro_cases,
+    load_review_cases,
 )
 from steward.evals.metrics import binary_metrics, classification_metrics
 from steward.evals.offline import HashingTfEmbedder, OfflineClassifier, OfflineReproducer
 from steward.evals.report import EvalReport, check_regressions, load_baseline
 from steward.evals.repro import REPRO_LABELS, run_repro_eval
+from steward.evals.review import REVIEW_LABELS, run_review_eval
 from steward.evals.run import build_report
 from steward.evals.triage import (
     TRIAGE_LABELS,
     run_classification_eval,
     run_dedup_eval,
 )
+from steward.review.offline import build_offline_council
 from steward.triage.dedup import DuplicateDetector, InMemoryVectorStore
 
 # --- metrics ------------------------------------------------------------------
@@ -142,6 +145,18 @@ def test_build_report_offline_is_clean() -> None:
     assert report.metrics["triage_f1"] == 1.0
     assert report.metrics["dedup_recall"] == 1.0
     assert report.metrics["repro_accuracy"] == 1.0
+    assert report.metrics["review_accuracy"] == 1.0
+
+
+def test_review_eval_scores_offline_council() -> None:
+    cases = load_review_cases()
+    assert cases  # the committed dataset is non-empty
+    metrics = run_review_eval(cases, build_offline_council())
+    # The offline council is a deterministic reference; it should classify the
+    # curated review cases correctly across all three verdict classes.
+    assert metrics.accuracy == 1.0
+    assert set(metrics.per_class) == set(REVIEW_LABELS)
+    assert all(m.support > 0 for m in metrics.per_class.values())
 
 
 def test_report_round_trips(tmp_path: Path) -> None:

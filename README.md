@@ -28,11 +28,13 @@ where it isn't measured yet (CLAUDE.md §1/§10). These are gated in CI against
 | Duplicate detection (precision) | 1.000 |
 | Duplicate detection (recall) | 1.000 |
 | Reproduction verdict (accuracy) | 1.000 |
+| Review council verdict (accuracy) | 1.000 |
+| Review council verdict (macro-F1) | 1.000 |
 | Fix success — SWE-bench Lite (% resolved) | not yet measured (#22) |
 | Avg cost / action (USD) | not yet measured (live run) |
 | Avg latency / action (s) | not yet measured (live run) |
 
-_Subset `triage+repro-v1` · backend **offline** · generated 2026-06-16._
+_Subset `triage+repro+review-v1` · backend **offline** · generated 2026-06-18._
 
 > **Read these honestly.** The numbers above come from the deterministic
 > **offline** reference backends (no model/embedding keys configured yet), run
@@ -249,7 +251,7 @@ The capabilities above are orchestrated by a stateful **LangGraph** graph
 CLAUDE.md §3:
 
 ```
-triage → route → reproduce → hypothesize → patch → test → VERIFY → open draft PR
+triage → route → reproduce → hypothesize → patch → test → VERIFY → COUNCIL → open draft PR
 ```
 
 Two properties are structural, not incidental:
@@ -270,6 +272,29 @@ is wired to the real classifier, and the reproduce/patch/PR implementations land
 in their own issues (#15, #16) and route through the policy engine there. This
 lets the full orchestration be integration-tested today against deterministic
 fakes — no model, Docker, or network.
+
+## Reviewer council
+
+Before a verified fix becomes a draft PR it passes through a **multi-agent
+review council** ([`src/steward/review/`](src/steward/review/)) — Steward's
+agentic, grounded second gate (CLAUDE.md §1/§3). A panel of specialist reviewer
+agents each judge the proposed patch along **one** axis — **correctness**,
+**security**, **test quality** — and return a typed `ReviewFinding` (verdict +
+rationale + a **citation copied from the diff**); a supervisor aggregates them
+conservatively, **worst verdict wins**:
+
+- **approve** → open the draft PR (as before);
+- **request_changes** → backtrack to re-hypothesize while the retry budget lasts;
+- **block** → terminal (`review_rejected`), no PR — so a single security
+  objection stops a fix even when every other dimension approves.
+
+The reviewers are agents through the **one** model client (Opus, structured
+output), and the patch is presented strictly as fenced **data** to resist prompt
+injection. A deterministic **offline** council ships too, so the gate runs with
+no keys in CI, the demo, and the eval. The council is exposed as the
+`review_patch` MCP tool and is **measured** — a labeled dataset in
+[`evals/review/`](evals/review/) is scored into the scorecard and the baseline
+gate.
 
 ## API service
 
@@ -327,6 +352,7 @@ comes back); they are product surface.
 | `search_codebase` | located code hits (path + line + snippet) |
 | `run_repo_tests_sandboxed` | sandbox pass/fail + truncated logs |
 | `propose_patch` | a unified diff + proof test (validated to apply) |
+| `review_patch` | multi-agent council verdict + grounded per-dimension findings |
 
 Every tool is **read-only or sandboxed**: Steward's world-mutating actions
 (commenting, labeling, opening PRs) are deliberately **not** exposed here — they

@@ -23,6 +23,8 @@ from steward.graph.state import GraphState, ProposedPatch
 from steward.mcp.schemas import CodeHit, CodeSearchResults, IssueContext, SandboxTestReport
 from steward.observability import new_trace_id
 from steward.policy.engine import Action, ActionKind, PolicyEngine
+from steward.review.council import PatchReviewer
+from steward.review.models import CouncilReview, ReviewContext
 from steward.sandbox import SandboxRunner, SandboxSpec
 from steward.triage.dedup import DuplicateReport
 from steward.triage.models import NormalizedIssue
@@ -67,6 +69,7 @@ class StewardTools:
         duplicate_finder: DuplicateFinder,
         code_searcher: CodeSearcher,
         patch_proposer: PatchProposer,
+        patch_reviewer: PatchReviewer,
         sandbox_runner: SandboxRunner,
         sandbox_image: str = "python:3.12-slim",
     ) -> None:
@@ -75,6 +78,7 @@ class StewardTools:
         self._dedup = duplicate_finder
         self._search = code_searcher
         self._patcher = patch_proposer
+        self._reviewer = patch_reviewer
         self._sandbox = sandbox_runner
         self._image = sandbox_image
 
@@ -93,6 +97,29 @@ class StewardTools:
         issue = self._issues.get_issue(issue_number)
         state = GraphState(issue=issue, trace_id=new_trace_id(), hypothesis=hypothesis)
         return self._patcher.propose(state)
+
+    def review_patch(
+        self,
+        diff: str,
+        proof_test: str = "",
+        hypothesis: str = "",
+        proof_test_path: str = "",
+        test_passed: bool = True,
+    ) -> CouncilReview:
+        """Run the multi-agent review council over a candidate patch.
+
+        Read-only reasoning — it inspects the supplied diff/test and returns a
+        grounded verdict; it never applies or commits anything. No policy gate is
+        needed because nothing is mutated.
+        """
+        context = ReviewContext(
+            diff=diff,
+            proof_test=proof_test,
+            proof_test_path=proof_test_path,
+            hypothesis=hypothesis,
+            test_passed=test_passed,
+        )
+        return self._reviewer.review(context)
 
     def run_repo_tests_sandboxed(
         self, repo: str, repo_path: str, command: str, *, image: str | None = None
