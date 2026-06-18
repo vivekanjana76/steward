@@ -16,6 +16,7 @@ from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from steward.review.models import CouncilReview
 from steward.sandbox import SandboxResult
 from steward.triage.classify import TriageDecision
 from steward.triage.models import NormalizedIssue
@@ -45,6 +46,7 @@ class GraphOutcome(StrEnum):
     NEEDS_INFO = "needs_info"
     COULD_NOT_REPRODUCE = "could_not_reproduce"
     FIX_PROPOSED = "fix_proposed"
+    REVIEW_REJECTED = "review_rejected"
     GAVE_UP = "gave_up"
 
 
@@ -112,6 +114,7 @@ class GraphState(BaseModel):
     test_result: SandboxResult | None = None
     attempts: int = 0
     verified: bool = False
+    council_review: CouncilReview | None = None
     pr: OpenedPR | None = None
     outcome: GraphOutcome = GraphOutcome.PENDING
     notes: Annotated[list[str], operator.add] = Field(default_factory=list)

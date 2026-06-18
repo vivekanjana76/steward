@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-06-16T15:51:37.959010+00:00",
+  "generated_at": "2026-06-18T15:09:48.741821+00:00",
   "backend": "offline",
-  "subset": "triage-v1",
+  "subset": "triage+repro+review-v1",
   "metrics": {
     "triage_f1": 1.0,
     "triage_accuracy": 1.0,
@@ -9,7 +9,9 @@
     "dedup_precision": 1.0,
     "dedup_recall": 1.0,
     "repro_accuracy": 1.0,
-    "repro_f1": 1.0
+    "repro_f1": 1.0,
+    "review_accuracy": 1.0,
+    "review_f1": 1.0
   },
   "details": {
     "classification": {
@@ -73,6 +75,34 @@
           "recall": 1.0,
           "f1": 1.0,
           "support": 2
+        }
+      }
+    },
+    "review": {
+      "backend": "offline",
+      "dimensions": [
+        "correctness",
+        "security",
+        "test_quality"
+      ],
+      "per_class": {
+        "approve": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 2
+        },
+        "request_changes": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 4
+        },
+        "block": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 4
         }
       }
     }

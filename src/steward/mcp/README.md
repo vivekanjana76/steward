@@ -127,6 +127,38 @@ Returns `ProposedPatch`: a unified `diff`, a `proof_test`, its
 before it is returned; it is **not** applied or committed — opening a PR is a
 separate, human-approved step.
 
+### `review_patch`
+Review a candidate patch with Steward's **multi-agent council** before proposing
+it. A panel of specialist reviewers (correctness, security, test quality) each
+judge the `diff` + `proof_test` along one axis, and a supervisor returns one
+verdict with each reviewer's grounded finding.
+
+| Input | Type | |
+| ----- | ---- | - |
+| `diff` | str (unified diff) | required |
+| `proof_test` | str | optional — the test meant to prove the fix |
+| `hypothesis` | str | optional — the cause the fix targets |
+| `proof_test_path` | str | optional |
+| `test_passed` | bool | optional (default `true`) — did the proof test pass? |
+
+Returns `CouncilReview`: an aggregate `verdict` (`0` approve / `1`
+request_changes / `2` block, worst wins), a `summary`, and `findings[]` of
+`{dimension, verdict, rationale, citation}` — every non-approval **cites the
+exact diff line** that triggered it. Read-only reasoning: it inspects the patch
+and returns a verdict; it never applies, commits, or opens anything. Runs
+deterministically with **no keys** (the offline council) and uses the live Opus
+council once `ANTHROPIC_API_KEY` is set.
+
+```jsonc
+// → call
+{"diff": "--- a/x\n+++ b/x\n+    os.system(cmd)\n", "proof_test": "assert run()"}
+// ← result
+{"verdict": 2, "summary": "block — raised by security (block)",
+ "findings": [{"dimension": "security", "verdict": 2,
+   "rationale": "the fix introduces a security risk: shell-out via os.system()",
+   "citation": "os.system(cmd)"}]}
+```
+
 ## Schema stability
 
 Every tool's input and output schema is contract-tested

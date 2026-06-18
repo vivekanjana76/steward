@@ -38,6 +38,7 @@ def build_graph(
     graph.add_node(nodes.PATCH, partial(nodes.patch_node, deps=deps))
     graph.add_node(nodes.TEST, partial(nodes.test_node, deps=deps))
     graph.add_node(nodes.VERIFY, partial(nodes.verify_node, deps=deps))
+    graph.add_node(nodes.COUNCIL, partial(nodes.council_node, deps=deps))
     graph.add_node(nodes.OPEN_PR, partial(nodes.open_pr_node, deps=deps))
     graph.add_node(nodes.GIVE_UP, partial(nodes.give_up_node, deps=deps))
 
@@ -65,10 +66,22 @@ def build_graph(
             nodes.GIVE_UP: nodes.GIVE_UP,
         },
     )
+    # A grounded fix goes to the multi-agent review council before any PR (#55).
     graph.add_conditional_edges(
         nodes.VERIFY,
         nodes.route_after_verify,
-        {nodes.OPEN_PR: nodes.OPEN_PR, nodes.GIVE_UP: nodes.GIVE_UP},
+        {nodes.COUNCIL: nodes.COUNCIL, nodes.GIVE_UP: nodes.GIVE_UP},
+    )
+    # Council backtracking: request-changes → re-hypothesize; block → terminal.
+    graph.add_conditional_edges(
+        nodes.COUNCIL,
+        nodes.route_after_council,
+        {
+            nodes.OPEN_PR: nodes.OPEN_PR,
+            nodes.HYPOTHESIZE: nodes.HYPOTHESIZE,
+            nodes.GIVE_UP: nodes.GIVE_UP,
+            nodes.GIVE_UP_OR_END: END,
+        },
     )
     graph.add_edge(nodes.OPEN_PR, END)
     graph.add_edge(nodes.GIVE_UP, END)

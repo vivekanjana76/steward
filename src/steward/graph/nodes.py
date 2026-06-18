@@ -16,6 +16,7 @@ from steward.graph.state import (
     ReproVerdict,
     RouteTarget,
 )
+from steward.review.models import CouncilReview, ReviewContext, ReviewVerdict
 from steward.triage.classify import IssueCategory
 
 # Node names — referenced by both the builder's edges and the routers.
@@ -26,6 +27,7 @@ HYPOTHESIZE = "hypothesize"
 PATCH = "patch"
 TEST = "test"
 VERIFY = "verify"
+COUNCIL = "council"
 OPEN_PR = "open_pr"
 GIVE_UP = "give_up"
 
@@ -120,6 +122,37 @@ def verify_node(state: GraphState, deps: StewardDeps) -> StateUpdate:
     return {"verified": grounded, "notes": [note]}
 
 
+def council_node(state: GraphState, deps: StewardDeps) -> StateUpdate:
+    """The multi-agent review gate: a panel critiques the verified fix (#55).
+
+    Runs after VERIFY, so a patch only reaches the council with a passing proof
+    test. With no council configured the gate is a no-op approval, preserving the
+    prior VERIFY→OPEN_PR behavior. A ``BLOCK`` is terminal (``REVIEW_REJECTED``);
+    ``REQUEST_CHANGES`` backtracks to re-hypothesize while the retry budget lasts.
+    """
+    assert state.patch is not None  # guaranteed: VERIFY ran and grounded the fix
+    if deps.council is None:
+        review = CouncilReview.unanimous_approve("no review council configured; approving")
+    else:
+        context = ReviewContext(
+            issue=state.issue,
+            diff=state.patch.diff,
+            proof_test=state.patch.proof_test,
+            proof_test_path=state.patch.proof_test_path,
+            hypothesis=state.hypothesis or "",
+            repro_summary=state.repro.summary if state.repro else "",
+            test_passed=state.test_result is not None and state.test_result.passed,
+        )
+        review = deps.council.review(context)
+    update: StateUpdate = {
+        "council_review": review,
+        "notes": [f"council: {review.verdict.label} — {review.summary}"],
+    }
+    if review.verdict is ReviewVerdict.BLOCK:
+        update["outcome"] = GraphOutcome.REVIEW_REJECTED
+    return update
+
+
 def open_pr_node(state: GraphState, deps: StewardDeps) -> StateUpdate:
     """Open the draft PR for a verified fix (routed through policy in #16)."""
     pr = deps.pr_opener.open_draft(state)
@@ -159,8 +192,25 @@ def route_after_test(state: GraphState) -> str:
 
 
 def route_after_verify(state: GraphState) -> str:
-    """A grounded verification opens a PR; an ungrounded one gives up."""
-    return OPEN_PR if state.verified else GIVE_UP
+    """A grounded verification goes to the review council; an ungrounded one gives up."""
+    return COUNCIL if state.verified else GIVE_UP
+
+
+def route_after_council(state: GraphState) -> str:
+    """Approve → open PR; request-changes → backtrack (budget permitting); block → end.
+
+    A ``BLOCK`` is terminal and the council node already recorded
+    ``REVIEW_REJECTED`` as the outcome, so it routes to END rather than the
+    give-up node (which would overwrite that with ``GAVE_UP``). A
+    ``REQUEST_CHANGES`` with no retry budget left honestly gives up.
+    """
+    review = state.council_review
+    assert review is not None  # the council node always runs before this router
+    if review.verdict is ReviewVerdict.APPROVE:
+        return OPEN_PR
+    if review.verdict is ReviewVerdict.BLOCK:
+        return GIVE_UP_OR_END
+    return HYPOTHESIZE if state.attempts < state.max_attempts else GIVE_UP
 
 
 # A sentinel the builder maps to END for non-bug / not-reproduced terminal paths.

@@ -17,6 +17,7 @@ from steward.mcp.schemas import CodeHit
 from steward.mcp.server import build_server
 from steward.mcp.service import StewardTools
 from steward.policy.engine import PolicyEngine
+from steward.review.offline import build_offline_council
 from steward.sandbox import SandboxRunner, SandboxSpec
 from steward.sandbox.runner import ContainerRun
 from steward.triage.dedup import DuplicateCandidate, DuplicateReport
@@ -84,12 +85,13 @@ def _server(*, runner: SandboxRunner | None = None):
         duplicate_finder=FakeDedup(),
         code_searcher=FakeSearch(),
         patch_proposer=FakePatcher(),
+        patch_reviewer=build_offline_council(),
         sandbox_runner=runner or SandboxRunner(PassBackend()),
     )
     return build_server(tools)
 
 
-async def test_lists_all_five_tools() -> None:
+async def test_lists_all_tools() -> None:
     async with Client(_server()) as client:
         names = {t.name for t in await client.list_tools()}
     assert names == {
@@ -98,6 +100,7 @@ async def test_lists_all_five_tools() -> None:
         "search_codebase",
         "run_repo_tests_sandboxed",
         "propose_patch",
+        "review_patch",
     }
 
 
@@ -136,6 +139,28 @@ async def test_propose_patch_returns_diff_and_proof() -> None:
     assert data["proof_test"]
 
 
+async def test_review_patch_blocks_a_dangerous_diff() -> None:
+    # The security reviewer blocks a diff that introduces a shell-out sink, and
+    # the council returns that as the aggregate verdict with a grounded citation.
+    diff = "--- a/x\n+++ b/x\n+    os.system(user_input)\n"
+    async with Client(_server()) as client:
+        res = await client.call_tool("review_patch", {"diff": diff, "proof_test": "assert run()"})
+    data = _data(res)
+    assert data["verdict"] == 2  # ReviewVerdict.BLOCK
+    assert any(f["dimension"] == "security" and f["citation"] for f in data["findings"])
+
+
+async def test_review_patch_approves_a_clean_diff() -> None:
+    diff = "--- a/x\n+++ b/x\n+    return subtotal - discount\n"
+    async with Client(_server()) as client:
+        res = await client.call_tool(
+            "review_patch",
+            {"diff": diff, "proof_test": "def test():\n    assert f() == 90", "test_passed": True},
+        )
+    data = _data(res)
+    assert data["verdict"] == 0  # ReviewVerdict.APPROVE
+
+
 async def test_run_repo_tests_sandboxed_passes_for_target_repo() -> None:
     async with Client(_server()) as client:
         res = await client.call_tool(
@@ -170,6 +195,7 @@ def test_facade_run_tests_maps_sandbox_result() -> None:
         duplicate_finder=FakeDedup(),
         code_searcher=FakeSearch(),
         patch_proposer=FakePatcher(),
+        patch_reviewer=build_offline_council(),
         sandbox_runner=SandboxRunner(BigLogBackend()),
     )
     report = tools.run_repo_tests_sandboxed(TARGET, ".", "pytest")

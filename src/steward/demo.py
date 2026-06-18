@@ -10,8 +10,9 @@ after the patch, in-process.
 Narrative per issue:
 
 * the **bug** (#1): triage → reproduce → patch → proof test fails-before /
-  passes-after → VERIFY → a draft PR is *proposed* (queued for human approval,
-  audited as dry-run); nothing is opened on GitHub.
+  passes-after → VERIFY → the multi-agent review **council** approves → a draft
+  PR is *proposed* (queued for human approval, audited as dry-run); nothing is
+  opened on GitHub.
 * the **duplicate** (#2): detected as a duplicate of #1; Steward would comment +
   label, not fix.
 * the **needs-info** report (#3): too thin to act on; routed to needs-info.
@@ -47,6 +48,7 @@ from steward.policy.approvals import ApprovalQueue
 from steward.policy.audit import AuditRecord, InMemoryAuditLog
 from steward.policy.engine import PolicyEngine
 from steward.policy.execute import ExecutionGate
+from steward.review.offline import build_offline_council
 from steward.triage.dedup import DuplicateDetector, InMemoryVectorStore
 from steward.triage.ingest import normalize_issue
 from steward.triage.models import NormalizedIssue
@@ -180,6 +182,7 @@ class IssueReport(BaseModel):
     disposition: str
     duplicate_of: int | None = None
     pr_branch: str | None = None
+    council: str | None = None
 
 
 class DemoResult(BaseModel):
@@ -226,6 +229,9 @@ def run_demo() -> DemoResult:
         patcher=_DemoPatcher(source),
         tester=_DemoTester(source),
         pr_opener=opener,
+        # The grounded fix passes through the multi-agent review council (#55)
+        # before any PR — deterministic offline panel, no keys required.
+        council=build_offline_council(),
     )
     graph = build_graph(deps)
 
@@ -265,6 +271,11 @@ def run_demo() -> DemoResult:
             if pending:
                 approved = queue.approve(pending[0].approval_id, by="demo-maintainer")
                 opener.execute_approved(approved, trace_id=state.trace_id)
+        council = (
+            f"{state.council_review.verdict.label} — {state.council_review.summary}"
+            if state.council_review
+            else None
+        )
         reports.append(
             IssueReport(
                 number=issue.number,
@@ -272,6 +283,7 @@ def run_demo() -> DemoResult:
                 triage=triage_label,
                 disposition=disposition,
                 pr_branch=branch,
+                council=council,
             )
         )
 
@@ -324,6 +336,8 @@ def main() -> int:
     for r in result.issues:
         print(f"  #{r.number} [{r.triage}] {r.title}")
         print(f"      -> {r.disposition}")
+        if r.council:
+            print(f"      review council: {r.council}")
     if result.proposed_pr_body:
         print("\n--- proposed draft PR (NOT opened; dry-run) ---")
         print("\n".join("  " + line for line in result.proposed_pr_body.splitlines()))

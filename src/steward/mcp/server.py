@@ -27,6 +27,8 @@ from steward.mcp.service import (
     _UnavailableSearch,
 )
 from steward.policy.engine import PolicyEngine, PolicyViolationError, build_policy_engine
+from steward.review.models import CouncilReview
+from steward.review.offline import build_offline_council
 from steward.sandbox import SandboxRunner
 from steward.sandbox.docker_backend import DockerBackend
 from steward.triage.dedup import DuplicateReport
@@ -98,6 +100,28 @@ def build_server(tools: StewardTools) -> FastMCP:
         """
         return tools.propose_patch(issue_number, hypothesis)
 
+    @mcp.tool
+    def review_patch(
+        diff: str,
+        proof_test: str = "",
+        hypothesis: str = "",
+        proof_test_path: str = "",
+        test_passed: bool = True,
+    ) -> CouncilReview:
+        """Review a candidate patch with Steward's multi-agent council.
+
+        Call this before proposing a fix. A panel of specialist reviewers
+        (correctness, security, test quality) each judge the ``diff`` and its
+        ``proof_test`` along one axis, and a supervisor returns one verdict
+        (``approve`` / ``request_changes`` / ``block``) with each reviewer's
+        grounded finding (a rationale + a citation copied from the diff). Pass
+        ``test_passed=false`` if the proof test has not been shown to pass.
+
+        Read-only: it inspects the patch and returns a verdict; it never applies,
+        commits, or opens anything.
+        """
+        return tools.review_patch(diff, proof_test, hypothesis, proof_test_path, test_passed)
+
     return mcp
 
 
@@ -120,6 +144,9 @@ def build_default_server() -> FastMCP:
         duplicate_finder=_UnavailableDedup(),
         code_searcher=_UnavailableSearch(),
         patch_proposer=_UnavailablePatcher(),
+        # The review council runs deterministically with no keys, so review_patch
+        # is usable out of the box (the live council wires in once keys land).
+        patch_reviewer=build_offline_council(),
         sandbox_runner=SandboxRunner(DockerBackend()),
     )
     return build_server(tools)

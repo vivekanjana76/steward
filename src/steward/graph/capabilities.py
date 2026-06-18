@@ -16,6 +16,7 @@ from dataclasses import dataclass
 from typing import Protocol
 
 from steward.graph.state import GraphState, OpenedPR, ProposedPatch, ReproOutcome
+from steward.review.council import PatchReviewer
 from steward.sandbox import SandboxResult
 from steward.triage.classify import TriageDecision
 from steward.triage.models import NormalizedIssue
@@ -85,3 +86,7 @@ class StewardDeps:
     patcher: Patcher
     tester: Tester
     pr_opener: PullRequestOpener
+    # The multi-agent review gate (#55). Optional and defaulted so existing
+    # graphs keep working: with no council, the COUNCIL node approves and the
+    # flow is unchanged. Wire a real one to gate the draft PR on review.
+    council: PatchReviewer | None = None
