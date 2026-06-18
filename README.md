@@ -364,9 +364,30 @@ incoming issue checked against the already-filed backlog, so a claim must point
 to an earlier issue.) The SWE-bench fix eval and the README scorecard table
 follow in #22 / #24.
 
+## Demo
+
+The canonical demo target is [`demo/`](demo/) — **a small shop app we own**, not
+an unsolicited third-party repo (CLAUDE.md §5). It carries one intentional,
+reproducible bug (`apply_discount` adds the discount instead of subtracting it)
+and three seeded issues: the bug, a near-duplicate of it, and a too-thin
+`needs-info` report.
+
+```bash
+just demo        # raw: uv run python -m steward.demo
+```
+
+One full cycle runs **entirely dry-run** — no API keys, no Docker, no network —
+by wiring deterministic offline seams, yet the "fix proven" evidence is **real**:
+the proof test runs the demo's actual code before and after the patch, in-process.
+Each issue reaches its grounded disposition — the bug gets a verified fix proposed
+as a draft PR (queued for approval, audited as dry-run; **nothing is opened on
+GitHub**), the duplicate is linked to the original, and the thin report is routed
+to `needs-info`. The run prints the proposed PR body and the full audit log so you
+can see every gated decision.
+
 ## Architecture & decisions
 
-A full architecture section and demo land in M7. Design decisions are recorded
+A full architecture section lands in M7. Design decisions are recorded
 as ADRs in [`docs/adr/`](docs/adr/). Recommended development tooling — MCP
 servers and the checked-in agent skills — is documented in
 [`docs/dev-tooling.md`](docs/dev-tooling.md).

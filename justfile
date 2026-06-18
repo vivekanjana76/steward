@@ -42,7 +42,7 @@ eval:
 mcp:
     uv run python -m steward.mcp
 
-# Point Steward at the controlled demo repo, one full cycle in dry-run (M7, #25).
+# Point Steward at the controlled demo repo, one full cycle in dry-run.
 # raw: uv run python -m steward.demo
 demo:
-    @echo "demo lands in M7 (issue #25)"
+    uv run python -m steward.demo
