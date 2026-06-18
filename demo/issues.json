@@ -1,0 +1,17 @@
+[
+  {
+    "number": 1,
+    "title": "Applying a discount makes the total wrong (goes up)",
+    "body": "Steps: add an item priced $100, apply a 10 percent discount, view the total. The total increases to $110 instead of decreasing to $90. This is wrong and happens every time. Looks like apply_discount adds the discount instead of subtracting it."
+  },
+  {
+    "number": 2,
+    "title": "Discount coupon increases the price instead of reducing it",
+    "body": "Applying a 10 percent discount coupon at checkout increases the total instead of reducing it. On a $100 cart it charges $110, which is wrong. The discount adds to the total. Consistently reproducible every time."
+  },
+  {
+    "number": 3,
+    "title": "checkout broken",
+    "body": ""
+  }
+]
