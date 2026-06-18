@@ -1,0 +1,13 @@
+{
+  "$comment": "Example runtime config for EXTERNAL MCP servers the Steward AGENT consumes as read-only context (issue #57). Copy to config/steward.mcp.json (git-ignored) and load via ExternalToolHub.from_config_file. Only configure READ-ONLY servers — external output is treated as untrusted data, never instructions (CLAUDE.md §5). This is NOT .mcp.json.example (that one is dev tooling for the engineer; see docs/dev-tooling.md).",
+  "mcpServers": {
+    "context7": {
+      "command": "npx",
+      "args": ["-y", "@upstash/context7-mcp"]
+    },
+    "sequential-thinking": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-sequential-thinking"]
+    }
+  }
+}
